@@ -1,377 +1,1179 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="en" dir="ltr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Rewords - منصة المكافآت والألعاب الموثوقة">
-    <title>Rewords | اكسب المكافآت والألعاب</title>
-    
-    <!-- Adsterra Popunder -->
-    <script src="https://pl30883338.effectivecpmnetwork.com/f2/a0/3c/f2a03c3e517e5b8b30ca73eac42e76ce.js"></script>
-
-    <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="ReWords - Earn real rewards by completing offers, playing games, and more.">
+  <meta name="keywords" content="earn money, rewards, offers, surveys, games, gift cards, top up, cash rewards">
+  <meta property="og:title" content="ReWords - Earn Real Rewards">
+  <meta property="og:description" content="Complete offers, play games, earn coins. Cash out real rewards.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://rewords.alouanepx.workers.dev">
+  <meta name="twitter:card" content="summary_large_image">
+  <title>ReWords - Earn Real Rewards | Top Up, Gift Cards & Cash</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Poppins:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🪙</text></svg>">
+  <script src="https://pl30883338.effectivecpmnetwork.com/f2/a0/3c/f2a03c3e517e5b8b30ca73eac42e76ce.js"></script>
+  <script src="https://quge5.com/88/tag.min.js" data-zone="270698" async data-cfasync="false"></script>
 </head>
 <body>
 
-    <!-- Auth Modal -->
-    <div id="auth-modal" class="modal active">
-        <div class="modal-content">
-            <h2 id="auth-title">تسجيل الدخول</h2>
-            <form id="auth-form">
-                <div class="form-group">
-                    <label>البريد الإلكتروني</label>
-                    <input type="email" id="auth-email" required>
-                </div>
-                <div class="form-group">
-                    <label>كلمة المرور</label>
-                    <input type="password" id="auth-password" required>
-                </div>
-                <div class="form-group" id="auth-extra-fields" style="display:none;">
-                    <label>اسم المستخدم</label>
-                    <input type="text" id="auth-username">
-                    <label>كود الإحالة (اختياري)</label>
-                    <input type="text" id="auth-referral">
-                </div>
-                <button type="submit" class="btn-primary" id="auth-submit-btn">دخول</button>
-            </form>
-            <p class="auth-toggle" id="auth-toggle-text">ليس لديك حساب؟ <span id="auth-toggle-btn">سجل الآن</span></p>
-        </div>
+<!-- ==================== LOADING SCREEN ==================== -->
+<div id="loadingScreen" class="loading-screen">
+  <div class="loader-content">
+    <div class="loader-logo">
+      <div class="loader-coin"><i class="fas fa-coins"></i></div>
+      <h1 class="loader-title">ReWords</h1>
+      <p class="loader-subtitle">Loading your rewards...</p>
     </div>
+    <div class="loader-bar"><div class="loader-progress"></div></div>
+  </div>
+</div>
 
-    <!-- Main App Container -->
-    <div id="app-container" style="display: none;">
-        
-        <header class="top-nav">
-            <div class="logo">
-                <i class="fas fa-coins"></i> Rewords
-            </div>
-            <div class="nav-balance">
-                <span class="balance-item"><i class="fas fa-wallet"></i> <span id="nav-available-coins">0</span> متاح</span>
-                <span class="balance-item"><i class="fas fa-clock"></i> <span id="nav-pending-coins">0</span> قيد المراجعة</span>
-            </div>
-            <div class="nav-user">
-                <span id="nav-username">User</span>
-                <button id="nav-profile-btn" class="btn-icon"><i class="fas fa-user-circle"></i></button>
-                <button id="nav-logout-btn" class="btn-icon"><i class="fas fa-sign-out-alt"></i></button>
-            </div>
-        </header>
-
-        <div class="main-layout">
-            <aside class="sidebar">
-                <nav>
-                    <ul>
-                        <li class="nav-item active" data-view="view-home"><i class="fas fa-home"></i> الرئيسية</li>
-                        <li class="nav-item" data-view="view-earn"><i class="fas fa-tasks"></i> اكسب (Offers)</li>
-                        <li class="nav-item" data-view="view-games"><i class="fas fa-gamepad"></i> الألعاب</li>
-                        <li class="nav-item" data-view="view-rewards"><i class="fas fa-gift"></i> متجر المكافآت</li>
-                        <li class="nav-item" data-view="view-wallet"><i class="fas fa-wallet"></i> المحفظة والسجل</li>
-                        <li class="nav-item" data-view="view-withdraw"><i class="fas fa-money-bill-wave"></i> السحب</li>
-                        <li class="nav-item" data-view="view-referral"><i class="fas fa-users"></i> الإحالات</li>
-                        <li class="nav-item" data-view="view-daily"><i class="fas fa-calendar-check"></i> المكافأة اليومية</li>
-                        <li class="nav-item" data-view="view-leaderboard"><i class="fas fa-trophy"></i> المتصدرين</li>
-                        <li class="nav-item" data-view="view-support"><i class="fas fa-headset"></i> الدعم الفني</li>
-                        <li class="nav-item admin-only" data-view="view-admin" style="display:none; color: #ff4757;"><i class="fas fa-shield-alt"></i> لوحة الإدارة</li>
-                    </ul>
-                </nav>
-            </aside>
-
-            <main class="content-area">
-                
-                <!-- VIEW: Home -->
-                <section id="view-home" class="view active">
-                    <div class="dashboard-header">
-                        <h1>مرحباً، <span id="home-username">User</span>!</h1>
-                        <p>حالة الحساب: <span id="account-status" class="status-verified">Verified</span></p>
-                    </div>
-                    
-                    <div class="stats-grid">
-                        <div class="stat-card">
-                            <h3>الرصيد المتاح</h3>
-                            <p class="stat-value" id="home-available">0 Coins</p>
-                            <small>≈ $<span id="home-usd-available">0.00</span></small>
-                        </div>
-                        <div class="stat-card">
-                            <h3>إجمالي ما كسبته</h3>
-                            <p class="stat-value" id="home-lifetime">0 Coins</p>
-                        </div>
-                        <div class="stat-card streak-card">
-                            <h3><i class="fas fa-fire"></i> Streak الحالي</h3>
-                            <p class="stat-value" id="home-streak">0 أيام</p>
-                            <button class="btn-sm" id="claim-daily-btn">استلم مكافأة اليوم</button>
-                        </div>
-                    </div>
-
-                    <div class="ad-container">
-                        <script async="async" data-cfasync="false" src="https://pl30883341.effectivecpmnetwork.com/f4263ddbfe2b4cb1e4ebdad01fc57d37/invoke.js"></script>
-                        <div id="container-f4263ddbfe2b4cb1e4ebdad01fc57d37"></div>
-                    </div>
-
-                    <div class="section-block">
-                        <h2><i class="fas fa-star"></i> العروض الأعلى ربحاً</h2>
-                        <div class="offers-scroll" id="home-top-offers"></div>
-                    </div>
-
-                    <div class="section-block">
-                        <h2><i class="fas fa-gift"></i> Popular Rewards</h2>
-                        <div class="rewards-grid" id="home-popular-rewards"></div>
-                    </div>
-                </section>
-
-                <!-- VIEW: Earn -->
-                <section id="view-earn" class="view">
-                    <h1>مركز المهام والعروض</h1>
-                    <div class="ad-container">
-                        <script>
-                            atOptions = {
-                                'key' : 'c26b6f67e990df9cd2681f276abe3231',
-                                'format' : 'iframe',
-                                'height' : 60,
-                                'width' : 468,
-                                'params' : {}
-                            };
-                        </script>
-                        <script src="https://www.highperformanceformat.com/c26b6f67e990df9cd2681f276abe3231/invoke.js"></script>
-                    </div>
-
-                    <div class="offerwall-tabs">
-                        <button class="tab-btn active" data-provider="freecash">Freecash Offers</button>
-                        <button class="tab-btn" data-provider="surveys">استبيانات</button>
-                        <button class="tab-btn" data-provider="tasks">مهام سريعة</button>
-                    </div>
-
-                    <div class="offerwall-content active" id="offerwall-freecash">
-                        <div class="freecash-banner">
-                            <a href="https://freecash.com/r/34GRD6" target="_blank">
-                                <img src="https://cdn.phototourl.com/free/2026-08-17-d1178f26-4ff4-4f4d-aad0-8b528e531e10.png" alt="Freecash Affiliate">
-                            </a>
-                        </div>
-                        <p>أكمل العروض أدناه لكسب العملات.</p>
-                        <div class="iframe-container">
-                            <iframe src="about:blank" id="offerwall-iframe" title="Offerwall"></iframe>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- VIEW: Games -->
-                <section id="view-games" class="view">
-                    <h1>عروض الألعاب (Game Offers)</h1>
-                    <p>اكسب مكافآت ضخمة عند الوصول لمستويات محددة في الألعاب.</p>
-                    <div class="games-grid" id="games-list"></div>
-                </section>
-
-                <!-- VIEW: Rewards Store -->
-                <section id="view-rewards" class="view">
-                    <h1>متجر المكافآت وشحن الألعاب</h1>
-                    <div class="filter-bar">
-                        <button class="filter-btn active" data-category="all">الكل</button>
-                        <button class="filter-btn" data-category="topup">شحن ألعاب فوري</button>
-                        <button class="filter-btn" data-category="giftcard">بطاقات هدايا</button>
-                        <button class="filter-btn" data-category="crypto">عملات رقمية</button>
-                    </div>
-                    <div class="rewards-grid" id="rewards-store-list"></div>
-                </section>
-
-                <!-- VIEW: Wallet -->
-                <section id="view-wallet" class="view">
-                    <h1>المحفظة وسجل المعاملات</h1>
-                    <div class="wallet-summary">
-                        <div class="w-box"><span>Available</span><strong id="w-available">0</strong></div>
-                        <div class="w-box"><span>Pending</span><strong id="w-pending">0</strong></div>
-                        <div class="w-box"><span>Locked</span><strong id="w-locked">0</strong></div>
-                        <div class="w-box"><span>Total Earned</span><strong id="w-earned">0</strong></div>
-                        <div class="w-box"><span>Total Spent</span><strong id="w-spent">0</strong></div>
-                    </div>
-                    <h3>سجل المعاملات</h3>
-                    <div class="table-responsive">
-                        <table class="data-table" id="ledger-table">
-                            <thead>
-                                <tr>
-                                    <th>التاريخ</th>
-                                    <th>النوع</th>
-                                    <th>الوصف</th>
-                                    <th>المبلغ</th>
-                                    <th>قبل</th>
-                                    <th>بعد</th>
-                                    <th>الحالة</th>
-                                </tr>
-                            </thead>
-                            <tbody></tbody>
-                        </table>
-                    </div>
-                </section>
-
-                <!-- VIEW: Withdraw -->
-                <section id="view-withdraw" class="view">
-                    <h1>طلب سحب الأرباح</h1>
-                    <div class="withdraw-info">
-                        <p>الحد الأدنى للسحب: <strong>10,000 Coins</strong> ($1.00)</p>
-                        <p>الرصيد المتاح: <strong id="withdraw-available">0</strong> Coins</p>
-                    </div>
-                    <form id="withdraw-form" class="styled-form">
-                        <div class="form-group">
-                            <label>طريقة السحب</label>
-                            <select id="withdraw-method" required>
-                                <option value="paypal">PayPal</option>
-                                <option value="crypto_usdt">USDT (TRC20)</option>
-                                <option value="giftcard_amazon">Amazon Gift Card</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>عنوان المحفظة / البريد الإلكتروني</label>
-                            <input type="text" id="withdraw-address" required>
-                        </div>
-                        <div class="form-group">
-                            <label>المبلغ (Coins)</label>
-                            <input type="number" id="withdraw-amount" min="10000" required>
-                        </div>
-                        <button type="submit" class="btn-primary">تأكيد طلب السحب</button>
-                    </form>
-                </section>
-
-                <!-- VIEW: Referral -->
-                <section id="view-referral" class="view">
-                    <h1>نظام الإحالات</h1>
-                    <div class="referral-box">
-                        <h3>رابط الإحالة الخاص بك</h3>
-                        <div class="copy-box">
-                            <input type="text" id="referral-link" readonly>
-                            <button class="btn-sm" id="copy-referral-btn">نسخ</button>
-                        </div>
-                        <p>كود الإحالة: <strong id="referral-code">---</strong></p>
-                    </div>
-                    <div class="stats-grid">
-                        <div class="stat-card"><h3>إجمالي المحالين</h3><p class="stat-value" id="ref-total">0</p></div>
-                        <div class="stat-card"><h3>أرباح الإحالة</h3><p class="stat-value" id="ref-earnings">0</p></div>
-                    </div>
-                </section>
-
-                <!-- VIEW: Daily -->
-                <section id="view-daily" class="view">
-                    <h1>المكافأة اليومية و Streaks</h1>
-                    <div class="streak-calendar" id="streak-calendar"></div>
-                    <button class="btn-primary btn-lg" id="daily-claim-main-btn">استلم مكافأة اليوم</button>
-                </section>
-
-                <!-- VIEW: Leaderboard -->
-                <section id="view-leaderboard" class="view">
-                    <h1>لوحة المتصدرين</h1>
-                    <table class="data-table" id="leaderboard-table">
-                        <thead><tr><th>الترتيب</th><th>المستخدم</th><th>الأرباح</th></tr></thead>
-                        <tbody></tbody>
-                    </table>
-                </section>
-
-                <!-- VIEW: Support -->
-                <section id="view-support" class="view">
-                    <h1>الدعم الفني</h1>
-                    <form id="support-form" class="styled-form">
-                        <div class="form-group">
-                            <label>الفئة</label>
-                            <select id="support-category">
-                                <option>مشكلة في عرض</option>
-                                <option>استفسار عن سحب</option>
-                                <option>مشكلة في الحساب</option>
-                                <option>أخرى</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>الرسالة</label>
-                            <textarea id="support-message" rows="5" required></textarea>
-                        </div>
-                        <button type="submit" class="btn-primary">إرسال التذكرة</button>
-                    </form>
-                </section>
-
-                <!-- VIEW: Admin -->
-                <section id="view-admin" class="view">
-                    <h1>لوحة تحكم الإدارة</h1>
-                    <div class="admin-tabs">
-                        <button class="admin-tab active" data-admin-view="admin-overview">نظرة عامة</button>
-                        <button class="admin-tab" data-admin-view="admin-users">المستخدمين</button>
-                        <button class="admin-tab" data-admin-view="admin-withdrawals">طلبات السحب</button>
-                        <button class="admin-tab" data-admin-view="admin-fraud">مكافحة الاحتيال</button>
-                        <button class="admin-tab" data-admin-view="admin-finance">المالية</button>
-                    </div>
-
-                    <div id="admin-overview" class="admin-view active">
-                        <div class="stats-grid">
-                            <div class="stat-card"><h3>إجمالي المستخدمين</h3><p class="stat-value" id="adm-total-users">0</p></div>
-                            <div class="stat-card"><h3>إيرادات اليوم</h3><p class="stat-value" id="adm-rev-today">$0.00</p></div>
-                            <div class="stat-card"><h3>صافي الربح</h3><p class="stat-value" id="adm-net-profit">$0.00</p></div>
-                            <div class="stat-card"><h3>تنبيهات الاحتيال</h3><p class="stat-value text-danger" id="adm-fraud-alerts">0</p></div>
-                        </div>
-                    </div>
-
-                    <div id="admin-users" class="admin-view">
-                        <h3>إدارة المستخدمين</h3>
-                        <input type="text" id="admin-user-search" placeholder="بحث...">
-                        <table class="data-table" id="admin-users-table">
-                            <thead><tr><th>ID</th><th>البريد</th><th>الرصيد</th><th>الحالة</th><th>إجراءات</th></tr></thead>
-                            <tbody></tbody>
-                        </table>
-                    </div>
-
-                    <div id="admin-withdrawals" class="admin-view">
-                        <h3>طلبات السحب المعلقة</h3>
-                        <table class="data-table" id="admin-withdrawals-table">
-                            <thead><tr><th>ID</th><th>المستخدم</th><th>المبلغ</th><th>الطريقة</th><th>Risk</th><th>إجراءات</th></tr></thead>
-                            <tbody></tbody>
-                        </table>
-                    </div>
-
-                    <div id="admin-fraud" class="admin-view">
-                        <h3>مركز مكافحة الاحتيال</h3>
-                        <div class="fraud-logs" id="fraud-logs-list"></div>
-                    </div>
-
-                    <div id="admin-finance" class="admin-view">
-                        <h3>التقارير المالية</h3>
-                        <div class="stats-grid">
-                            <div class="stat-card"><h3>Gross Revenue</h3><p class="stat-value" id="fin-gross">$0</p></div>
-                            <div class="stat-card"><h3>User Rewards</h3><p class="stat-value" id="fin-rewards">$0</p></div>
-                            <div class="stat-card"><h3>Chargebacks</h3><p class="stat-value text-danger" id="fin-fraud">$0</p></div>
-                            <div class="stat-card"><h3>Net Margin</h3><p class="stat-value" id="fin-margin">0%</p></div>
-                        </div>
-                    </div>
-                </section>
-
-            </main>
-        </div>
+<!-- ==================== AUTH MODAL ==================== -->
+<div id="authModal" class="modal-overlay" style="display:none;">
+  <div class="auth-modal">
+    <button class="modal-close" onclick="closeAuthModal()"><i class="fas fa-times"></i></button>
+    <div class="auth-tabs">
+      <button class="auth-tab active" data-tab="login" onclick="switchAuthTab('login')">Sign In</button>
+      <button class="auth-tab" data-tab="register" onclick="switchAuthTab('register')">Sign Up</button>
     </div>
+    <form id="loginForm" class="auth-form" onsubmit="handleLogin(event)">
+      <div class="auth-header">
+        <div class="auth-icon"><i class="fas fa-user-circle"></i></div>
+        <h2>Welcome Back</h2>
+        <p>Sign in to continue earning rewards</p>
+      </div>
+      <div class="form-group">
+        <label><i class="fas fa-envelope"></i> Email</label>
+        <input type="email" id="loginEmail" placeholder="Enter your email" required>
+      </div>
+      <div class="form-group">
+        <label><i class="fas fa-lock"></i> Password</label>
+        <div class="password-input">
+          <input type="password" id="loginPassword" placeholder="Enter your password" required>
+          <button type="button" class="toggle-pass" onclick="togglePassword('loginPassword')"><i class="fas fa-eye"></i></button>
+        </div>
+      </div>
+      <div class="form-extras">
+        <label class="checkbox-label"><input type="checkbox" id="rememberMe"><span>Remember me</span></label>
+        <a href="#" class="forgot-link" onclick="forgotPassword()">Forgot password?</a>
+      </div>
+      <button type="submit" class="btn btn-primary btn-full" id="loginBtn"><span>Sign In</span> <i class="fas fa-arrow-right"></i></button>
+      <div class="auth-divider"><span>or continue with</span></div>
+      <div class="social-auth">
+        <button type="button" class="btn-social google" onclick="signInWithGoogle()"><i class="fab fa-google"></i> Google</button>
+        <button type="button" class="btn-social github" onclick="signInWithGithub()"><i class="fab fa-github"></i> GitHub</button>
+      </div>
+      <p class="auth-footer">Dont have an account? <a href="#" onclick="switchAuthTab('register')">Sign Up Free</a></p>
+    </form>
+    <form id="registerForm" class="auth-form" style="display:none;" onsubmit="handleRegister(event)">
+      <div class="auth-header">
+        <div class="auth-icon"><i class="fas fa-rocket"></i></div>
+        <h2>Join ReWords</h2>
+        <p>Start earning real rewards today</p>
+      </div>
+      <div class="form-group">
+        <label><i class="fas fa-user"></i> Username</label>
+        <input type="text" id="regUsername" placeholder="Choose a username" required minlength="3" maxlength="20">
+      </div>
+      <div class="form-group">
+        <label><i class="fas fa-envelope"></i> Email</label>
+        <input type="email" id="regEmail" placeholder="Enter your email" required>
+      </div>
+      <div class="form-group">
+        <label><i class="fas fa-lock"></i> Password</label>
+        <div class="password-input">
+          <input type="password" id="regPassword" placeholder="Create a password" required minlength="6">
+          <button type="button" class="toggle-pass" onclick="togglePassword('regPassword')"><i class="fas fa-eye"></i></button>
+        </div>
+        <div class="password-strength" id="passwordStrength"><div class="strength-bar"></div><span class="strength-text"></span></div>
+      </div>
+      <div class="form-group">
+        <label><i class="fas fa-globe"></i> Country</label>
+        <select id="regCountry" required>
+          <option value="">Select your country</option>
+          <option value="SA">Saudi Arabia</option><option value="AE">UAE</option><option value="EG">Egypt</option>
+          <option value="IQ">Iraq</option><option value="KW">Kuwait</option><option value="QA">Qatar</option>
+          <option value="BH">Bahrain</option><option value="OM">Oman</option><option value="JO">Jordan</option>
+          <option value="LB">Lebanon</option><option value="MA">Morocco</option><option value="TN">Tunisia</option>
+          <option value="DZ">Algeria</option><option value="LY">Libya</option><option value="SD">Sudan</option>
+          <option value="YE">Yemen</option><option value="PS">Palestine</option><option value="SY">Syria</option>
+          <option value="US">United States</option><option value="GB">United Kingdom</option><option value="DE">Germany</option>
+          <option value="FR">France</option><option value="TR">Turkey</option><option value="IN">India</option>
+          <option value="PK">Pakistan</option><option value="ID">Indonesia</option><option value="BR">Brazil</option>
+          <option value="MX">Mexico</option><option value="NG">Nigeria</option><option value="PH">Philippines</option>
+          <option value="OTHER">Other</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label><i class="fas fa-gift"></i> Referral Code (optional)</label>
+        <input type="text" id="regReferral" placeholder="Enter referral code">
+      </div>
+      <div class="form-group">
+        <label class="checkbox-label">
+          <input type="checkbox" id="agreeTerms" required>
+          <span>I agree to the <a href="#" onclick="showPage('terms')">Terms</a> and <a href="#" onclick="showPage('privacy')">Privacy Policy</a></span>
+        </label>
+      </div>
+      <button type="submit" class="btn btn-primary btn-full" id="registerBtn"><span>Create Account</span> <i class="fas fa-rocket"></i></button>
+      <p class="auth-footer">Already have an account? <a href="#" onclick="switchAuthTab('login')">Sign In</a></p>
+    </form>
+  </div>
+</div>
 
-    <!-- Toast Container -->
-    <div id="toast-container"></div>
+<!-- ==================== NOTIFICATION PANEL ==================== -->
+<div id="notifPanel" class="notif-panel" style="display:none;">
+  <div class="notif-header">
+    <h3><i class="fas fa-bell"></i> Notifications</h3>
+    <button onclick="markAllRead()" class="btn-text">Mark all read</button>
+  </div>
+  <div class="notif-list" id="notifList">
+    <div class="notif-empty"><i class="fas fa-bell-slash"></i><p>No notifications yet</p></div>
+  </div>
+</div>
 
-    <!-- Adsterra Social Bar -->
-    <script src="https://pl30883339.effectivecpmnetwork.com/4e/ac/77/4eac77d9d06816802aaaabe459e4ee83.js"></script>
-    
-    <!-- Monetag -->
-    <script src="https://quge5.com/88/tag.min.js" data-zone="270698" async data-cfasync="false"></script>
+<!-- ==================== TOAST CONTAINER ==================== -->
+<div id="toastContainer" class="toast-container"></div>
 
-    <!-- ========== FIREBASE SDK (Compat - Traditional) ========== -->
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-functions-compat.js"></script>
+<!-- ==================== SPIN WHEEL MODAL ==================== -->
+<div id="spinWheelModal" class="modal-overlay" style="display:none;">
+  <div class="spin-wheel-modal">
+    <button class="modal-close" onclick="closeSpinWheel()"><i class="fas fa-times"></i></button>
+    <h2>Spin the Wheel!</h2>
+    <p>Watch a short video to spin and win coins!</p>
+    <div class="wheel-container">
+      <div class="wheel" id="spinWheel">
+        <div class="wheel-segment" style="--i:0"><span>50</span></div>
+        <div class="wheel-segment" style="--i:1"><span>100</span></div>
+        <div class="wheel-segment" style="--i:2"><span>25</span></div>
+        <div class="wheel-segment" style="--i:3"><span>250</span></div>
+        <div class="wheel-segment" style="--i:4"><span>75</span></div>
+        <div class="wheel-segment" style="--i:5"><span>500</span></div>
+        <div class="wheel-segment" style="--i:6"><span>150</span></div>
+        <div class="wheel-segment" style="--i:7"><span>1000</span></div>
+      </div>
+      <div class="wheel-pointer"><i class="fas fa-caret-down"></i></div>
+    </div>
+    <button class="btn btn-primary btn-lg" id="spinBtn" onclick="spinTheWheel()"><i class="fas fa-play"></i> SPIN</button>
+    <div class="spin-result" id="spinResult" style="display:none;"></div>
+  </div>
+</div>
 
-    <!-- ========== FIREBASE INIT ========== -->
-    <script>
-        var firebaseConfig = {
-            apiKey: "AIzaSyBPMbRdVEJ85Is7eg4UkAFs_UHq-BD_Fhg",
-            authDomain: "rewords-45ccf.firebaseapp.com",
-            projectId: "rewords-45ccf",
-            storageBucket: "rewords-45ccf.firebasestorage.app",
-            messagingSenderId: "324257034049",
-            appId: "1:324257034049:web:2e75279382793007683bc0",
-            measurementId: "G-5LNDESBVST"
-        };
-        firebase.initializeApp(firebaseConfig);
-        console.log("✅ Firebase initialized successfully");
-    </script>
+<!-- ==================== SCRATCH CARD MODAL ==================== -->
+<div id="scratchModal" class="modal-overlay" style="display:none;">
+  <div class="scratch-modal">
+    <button class="modal-close" onclick="closeScratchCard()"><i class="fas fa-times"></i></button>
+    <h2>Scratch Card!</h2>
+    <p>Scratch to reveal your prize!</p>
+    <div class="scratch-card" id="scratchCard">
+      <canvas id="scratchCanvas" width="280" height="180"></canvas>
+      <div class="scratch-reward" id="scratchReward">??? Coins</div>
+    </div>
+    <div class="scratch-progress"><span id="scratchPercent">0%</span> scratched</div>
+    <button class="btn btn-primary" id="scratchClaimBtn" onclick="claimScratchReward()" style="display:none;"><i class="fas fa-coins"></i> Claim Reward</button>
+  </div>
+</div>
 
-    <!-- ========== MAIN APP SCRIPT (AFTER Firebase) ========== -->
-    <script src="script.js"></script>
+<!-- ==================== MYSTERY BOX MODAL ==================== -->
+<div id="mysteryBoxModal" class="modal-overlay" style="display:none;">
+  <div class="mystery-box-modal">
+    <button class="modal-close" onclick="closeMysteryBox()"><i class="fas fa-times"></i></button>
+    <h2>Mystery Box</h2>
+    <p>Tap to open your mystery box!</p>
+    <div class="mystery-box-3d" id="mysteryBox3D" onclick="openMysteryBoxAnim()">
+      <div class="box-body"><i class="fas fa-gift"></i></div>
+    </div>
+    <div class="mystery-result" id="mysteryResult" style="display:none;"></div>
+    <button class="btn btn-primary" id="mysteryClaimBtn" onclick="claimMysteryReward()" style="display:none;"><i class="fas fa-coins"></i> Claim</button>
+  </div>
+</div>
 
+<!-- ==================== OFFER DETAIL MODAL ==================== -->
+<div id="offerDetailModal" class="modal-overlay" style="display:none;">
+  <div class="offer-detail-modal">
+    <button class="modal-close" onclick="closeOfferDetail()"><i class="fas fa-times"></i></button>
+    <div class="od-header" id="odHeader">
+      <div class="od-icon"><i class="fas fa-gift"></i></div>
+      <div class="od-info">
+        <h2 id="odTitle">Offer Title</h2>
+        <span class="od-provider" id="odProvider">Provider</span>
+      </div>
+    </div>
+    <div class="od-body">
+      <div class="od-reward-box">
+        <span class="od-reward-label">Your Reward</span>
+        <span class="od-reward-amount" id="odReward">0 Coins</span>
+      </div>
+      <div class="od-details">
+        <div class="od-detail"><i class="fas fa-clock"></i><span>Estimated Time:</span><strong id="odTime">5 min</strong></div>
+        <div class="od-detail"><i class="fas fa-signal"></i><span>Difficulty:</span><strong id="odDifficulty">Easy</strong></div>
+        <div class="od-detail"><i class="fas fa-globe"></i><span>Country:</span><strong id="odCountry">All</strong></div>
+        <div class="od-detail"><i class="fas fa-mobile-alt"></i><span>Device:</span><strong id="odDevice">All</strong></div>
+        <div class="od-detail"><i class="fas fa-tag"></i><span>Category:</span><strong id="odCategory">General</strong></div>
+      </div>
+      <div class="od-description" id="odDescription"><p>Complete this offer to earn coins!</p></div>
+      <div class="od-instructions" id="odInstructions"></div>
+      <button class="btn btn-primary btn-lg btn-full" id="odStartBtn" onclick="startOffer()"><i class="fas fa-external-link-alt"></i> Start Offer</button>
+      <p class="od-note"><i class="fas fa-info-circle"></i> Coins will be credited after verification. This may take up to 24 hours.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== HEADER / NAVIGATION ==================== -->
+<header id="mainHeader" class="main-header">
+  <div class="header-inner">
+    <div class="header-left">
+      <button class="menu-toggle" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
+      <a href="#" class="logo" onclick="showPage('home')">
+        <div class="logo-icon"><i class="fas fa-coins"></i></div>
+        <span class="logo-text">Re<span class="logo-accent">Words</span></span>
+      </a>
+    </div>
+    <nav class="main-nav" id="mainNav">
+      <a href="#" class="nav-link active" data-page="home" onclick="showPage('home')"><i class="fas fa-home"></i><span>Home</span></a>
+      <a href="#" class="nav-link" data-page="earn" onclick="showPage('earn')"><i class="fas fa-money-bill-wave"></i><span>Earn</span></a>
+      <a href="#" class="nav-link" data-page="rewards-store" onclick="showPage('rewards-store')"><i class="fas fa-store"></i><span>Rewards</span></a>
+      <a href="#" class="nav-link" data-page="wallet" onclick="showPage('wallet')"><i class="fas fa-wallet"></i><span>Wallet</span></a>
+      <a href="#" class="nav-link" data-page="leaderboard" onclick="showPage('leaderboard')"><i class="fas fa-trophy"></i><span>Top</span></a>
+    </nav>
+    <div class="header-right">
+      <div class="user-balance" id="headerBalance" style="display:none;">
+        <div class="balance-coin"><i class="fas fa-coins"></i></div>
+        <span class="balance-amount" id="balanceDisplay">0</span>
+      </div>
+      <button class="notif-btn" id="notifBtn" onclick="toggleNotifPanel()" style="display:none;">
+        <i class="fas fa-bell"></i>
+        <span class="notif-badge" id="notifBadge" style="display:none;">0</span>
+      </button>
+      <div class="user-menu" id="userMenu" style="display:none;">
+        <button class="user-avatar-btn" onclick="toggleUserDropdown()">
+          <div class="user-avatar" id="userAvatar"><i class="fas fa-user"></i></div>
+          <span class="user-name" id="userName">User</span>
+          <i class="fas fa-chevron-down"></i>
+        </button>
+        <div class="user-dropdown" id="userDropdown" style="display:none;">
+          <div class="dropdown-header">
+            <div class="dropdown-avatar" id="dropdownAvatar"><i class="fas fa-user"></i></div>
+            <div class="dropdown-info">
+              <span class="dropdown-name" id="dropdownName">User</span>
+              <span class="dropdown-email" id="dropdownEmail">user@email.com</span>
+              <span class="dropdown-level" id="dropdownLevel">Level 1</span>
+            </div>
+          </div>
+          <div class="dropdown-divider"></div>
+          <a href="#" onclick="showPage('profile')" class="dropdown-item"><i class="fas fa-user-circle"></i> Profile</a>
+          <a href="#" onclick="showPage('daily')" class="dropdown-item"><i class="fas fa-calendar-check"></i> Daily Rewards</a>
+          <a href="#" onclick="showPage('referrals')" class="dropdown-item"><i class="fas fa-user-friends"></i> Referrals</a>
+          <a href="#" onclick="showPage('transactions')" class="dropdown-item"><i class="fas fa-history"></i> Transactions</a>
+          <a href="#" onclick="showPage('notifications-page')" class="dropdown-item"><i class="fas fa-bell"></i> Notifications</a>
+          <a href="#" onclick="showPage('settings')" class="dropdown-item"><i class="fas fa-cog"></i> Settings</a>
+          <a href="#" onclick="showPage('security')" class="dropdown-item"><i class="fas fa-shield-alt"></i> Security</a>
+          <a href="#" onclick="showPage('support')" class="dropdown-item"><i class="fas fa-headset"></i> Support</a>
+          <div class="dropdown-divider"></div>
+          <a href="#" onclick="showPage('admin')" class="dropdown-item admin-link" id="adminLink" style="display:none;"><i class="fas fa-tools"></i> Admin Panel</a>
+          <a href="#" onclick="handleLogout()" class="dropdown-item logout-item"><i class="fas fa-sign-out-alt"></i> Logout</a>
+        </div>
+      </div>
+      <button class="btn btn-primary btn-sm" id="signInBtn" onclick="openAuthModal()"><i class="fas fa-sign-in-alt"></i> <span>Sign In</span></button>
+    </div>
+  </div>
+</header>
+
+<!-- ==================== MOBILE BOTTOM NAV ==================== -->
+<nav class="mobile-nav" id="mobileNav">
+  <a href="#" class="mobile-nav-item active" data-page="home" onclick="showPage('home')"><i class="fas fa-home"></i><span>Home</span></a>
+  <a href="#" class="mobile-nav-item" data-page="earn" onclick="showPage('earn')"><i class="fas fa-coins"></i><span>Earn</span></a>
+  <a href="#" class="mobile-nav-item" data-page="daily" onclick="showPage('daily')"><i class="fas fa-gift"></i><span>Daily</span></a>
+  <a href="#" class="mobile-nav-item" data-page="rewards-store" onclick="showPage('rewards-store')"><i class="fas fa-store"></i><span>Rewards</span></a>
+  <a href="#" class="mobile-nav-item" data-page="wallet" onclick="showPage('wallet')"><i class="fas fa-wallet"></i><span>Wallet</span></a>
+</nav>
+
+<!-- ==================== SIDEBAR ==================== -->
+<aside id="sidebar" class="sidebar">
+  <div class="sidebar-header">
+    <div class="sidebar-logo">
+      <div class="logo-icon"><i class="fas fa-coins"></i></div>
+      <span class="logo-text">Re<span class="logo-accent">Words</span></span>
+    </div>
+    <button class="sidebar-close" onclick="toggleSidebar()"><i class="fas fa-times"></i></button>
+  </div>
+  <div class="sidebar-user" id="sidebarUser" style="display:none;">
+    <div class="sidebar-avatar" id="sidebarAvatar"><i class="fas fa-user"></i></div>
+    <div class="sidebar-user-info">
+      <span class="sidebar-username" id="sidebarUsername">User</span>
+      <span class="sidebar-level" id="sidebarLevel">Level 1</span>
+      <div class="xp-bar-mini"><div class="xp-fill" id="sidebarXp" style="width:20%"></div></div>
+    </div>
+  </div>
+  <div class="sidebar-section">
+    <span class="sidebar-label">Main</span>
+    <a href="#" class="sidebar-link active" data-page="home" onclick="showPage('home')"><i class="fas fa-home"></i> Home</a>
+    <a href="#" class="sidebar-link" data-page="earn" onclick="showPage('earn')"><i class="fas fa-coins"></i> Earn</a>
+    <a href="#" class="sidebar-link" data-page="offers" onclick="showPage('offers')"><i class="fas fa-hand-holding-usd"></i> Offerwalls</a>
+    <a href="#" class="sidebar-link" data-page="games" onclick="showPage('games')"><i class="fas fa-gamepad"></i> Games</a>
+    <a href="#" class="sidebar-link" data-page="surveys" onclick="showPage('surveys')"><i class="fas fa-poll"></i> Surveys</a>
+    <a href="#" class="sidebar-link" data-page="watch-ads" onclick="showPage('watch-ads')"><i class="fas fa-play-circle"></i> Watch Ads</a>
+  </div>
+  <div class="sidebar-section">
+    <span class="sidebar-label">Rewards</span>
+    <a href="#" class="sidebar-link" data-page="daily" onclick="showPage('daily')"><i class="fas fa-calendar-check"></i> Daily Rewards</a>
+    <a href="#" class="sidebar-link" data-page="tasks" onclick="showPage('tasks')"><i class="fas fa-tasks"></i> Tasks</a>
+    <a href="#" class="sidebar-link" data-page="challenges" onclick="showPage('challenges')"><i class="fas fa-flag-checkered"></i> Challenges</a>
+    <a href="#" class="sidebar-link" data-page="referrals" onclick="showPage('referrals')"><i class="fas fa-user-friends"></i> Referrals</a>
+  </div>
+  <div class="sidebar-section">
+    <span class="sidebar-label">Store</span>
+    <a href="#" class="sidebar-link" data-page="rewards-store" onclick="showPage('rewards-store')"><i class="fas fa-store"></i> Rewards Store</a>
+    <a href="#" class="sidebar-link" data-page="topup" onclick="showPage('topup')"><i class="fas fa-mobile-alt"></i> Top Up</a>
+    <a href="#" class="sidebar-link" data-page="withdraw" onclick="showPage('withdraw')"><i class="fas fa-money-bill-wave"></i> Withdraw</a>
+    <a href="#" class="sidebar-link" data-page="wallet" onclick="showPage('wallet')"><i class="fas fa-wallet"></i> Wallet</a>
+    <a href="#" class="sidebar-link" data-page="transactions" onclick="showPage('transactions')"><i class="fas fa-history"></i> Transactions</a>
+  </div>
+  <div class="sidebar-section">
+    <span class="sidebar-label">Social</span>
+    <a href="#" class="sidebar-link" data-page="leaderboard" onclick="showPage('leaderboard')"><i class="fas fa-trophy"></i> Leaderboard</a>
+    <a href="#" class="sidebar-link" data-page="notifications-page" onclick="showPage('notifications-page')"><i class="fas fa-bell"></i> Notifications</a>
+  </div>
+  <div class="sidebar-section">
+    <span class="sidebar-label">Account</span>
+    <a href="#" class="sidebar-link" data-page="profile" onclick="showPage('profile')"><i class="fas fa-user-circle"></i> Profile</a>
+    <a href="#" class="sidebar-link" data-page="settings" onclick="showPage('settings')"><i class="fas fa-cog"></i> Settings</a>
+    <a href="#" class="sidebar-link" data-page="security" onclick="showPage('security')"><i class="fas fa-shield-alt"></i> Security</a>
+    <a href="#" class="sidebar-link" data-page="support" onclick="showPage('support')"><i class="fas fa-headset"></i> Support</a>
+  </div>
+  <div class="sidebar-section">
+    <span class="sidebar-label">Legal</span>
+    <a href="#" class="sidebar-link" data-page="faq" onclick="showPage('faq')"><i class="fas fa-question-circle"></i> FAQ</a>
+    <a href="#" class="sidebar-link" data-page="terms" onclick="showPage('terms')"><i class="fas fa-file-contract"></i> Terms</a>
+    <a href="#" class="sidebar-link" data-page="privacy" onclick="showPage('privacy')"><i class="fas fa-user-shield"></i> Privacy</a>
+    <a href="#" class="sidebar-link" data-page="anti-fraud" onclick="showPage('anti-fraud')"><i class="fas fa-exclamation-triangle"></i> Anti-Fraud</a>
+  </div>
+  <div class="sidebar-section sidebar-admin" id="sidebarAdmin" style="display:none;">
+    <span class="sidebar-label">Admin</span>
+    <a href="#" class="sidebar-link" data-page="admin" onclick="showPage('admin')"><i class="fas fa-tools"></i> Admin Panel</a>
+  </div>
+  <div class="sidebar-footer">
+    <a href="https://freecash.com/r/34GRD6" target="_blank" class="sidebar-ad">
+      <img src="https://cdn.phototourl.com/free/2026-08-17-d1178f26-4ff4-4f4d-aad0-8b528e531e10.png" alt="Freecash" loading="lazy">
+    </a>
+  </div>
+</aside>
+
+<!-- ==================== MAIN CONTENT ==================== -->
+<main id="mainContent" class="main-content">
+
+  <!-- ========== HOME PAGE ========== -->
+  <section id="page-home" class="page active">
+    <div class="hero-banner">
+      <div class="hero-bg"></div>
+      <div class="hero-content">
+        <h1 class="hero-title">Earn <span class="gradient-text">Real Rewards</span> Every Day</h1>
+        <p class="hero-subtitle">Complete offers, play games, and earn coins. Cash out via PayPal, gift cards, and game top-ups.</p>
+        <button class="btn btn-primary btn-lg pulse-btn" onclick="handleHeroCTA()"><i class="fas fa-rocket"></i> Start Earning Now</button>
+        <div class="hero-stats">
+          <div class="hero-stat"><span class="hero-stat-num" data-count="12847">0</span><span class="hero-stat-label">Active Users</span></div>
+          <div class="hero-stat"><span class="hero-stat-num" data-count="89234">0</span><span class="hero-stat-label">Coins Paid</span></div>
+          <div class="hero-stat"><span class="hero-stat-num" data-count="15678">0</span><span class="hero-stat-label">Offers Completed</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="section-container">
+      <div class="quick-actions">
+        <div class="quick-action-card" onclick="showPage('offers')"><div class="qa-icon"><i class="fas fa-hand-holding-usd"></i></div><span>Offerwalls</span><span class="qa-earning">Up to $10/offer</span></div>
+        <div class="quick-action-card" onclick="showPage('games')"><div class="qa-icon games"><i class="fas fa-gamepad"></i></div><span>Games</span><span class="qa-earning">Up to $15/offer</span></div>
+        <div class="quick-action-card" onclick="showPage('surveys')"><div class="qa-icon surveys"><i class="fas fa-poll"></i></div><span>Surveys</span><span class="qa-earning">Up to $5/survey</span></div>
+        <div class="quick-action-card" onclick="showPage('watch-ads')"><div class="qa-icon ads"><i class="fas fa-play-circle"></i></div><span>Watch Ads</span><span class="qa-earning">+50 Coins</span></div>
+        <div class="quick-action-card" onclick="showPage('daily')"><div class="qa-icon daily"><i class="fas fa-calendar-check"></i></div><span>Daily Reward</span><span class="qa-earning">Up to 2,000 Coins</span></div>
+        <div class="quick-action-card" onclick="showPage('referrals')"><div class="qa-icon referrals"><i class="fas fa-user-friends"></i></div><span>Referrals</span><span class="qa-earning">+15% Lifetime</span></div>
+      </div>
+    </div>
+    <div class="section-container" id="streakBanner" style="display:none;">
+      <div class="streak-banner">
+        <div class="streak-info"><i class="fas fa-fire"></i><div><h3>Your Streak: <span id="streakCount">0</span> Days</h3><p>Keep claiming daily to multiply your rewards!</p></div></div>
+        <div class="streak-days">
+          <div class="streak-day completed"><i class="fas fa-check"></i><span>1</span></div>
+          <div class="streak-day completed"><i class="fas fa-check"></i><span>2</span></div>
+          <div class="streak-day completed"><i class="fas fa-check"></i><span>3</span></div>
+          <div class="streak-day active"><i class="fas fa-star"></i><span>4</span></div>
+          <div class="streak-day"><span>5</span></div>
+          <div class="streak-day"><span>6</span></div>
+          <div class="streak-day bonus"><span>7</span><small>Bonus!</small></div>
+        </div>
+        <button class="btn btn-primary" onclick="claimDailyStreak()"><i class="fas fa-gift"></i> Claim Today</button>
+      </div>
+    </div>
+    <div class="section-container">
+      <div class="section-header"><h2><i class="fas fa-fire-alt"></i> Top Earning Offers</h2><a href="#" onclick="showPage('offers')" class="see-all">See All <i class="fas fa-arrow-right"></i></a></div>
+      <div class="offers-grid" id="topOffersGrid">
+        <div class="offer-skeleton"><div class="skeleton-img"></div><div class="skeleton-text"></div><div class="skeleton-text short"></div></div>
+        <div class="offer-skeleton"><div class="skeleton-img"></div><div class="skeleton-text"></div><div class="skeleton-text short"></div></div>
+        <div class="offer-skeleton"><div class="skeleton-img"></div><div class="skeleton-text"></div><div class="skeleton-text short"></div></div>
+        <div class="offer-skeleton"><div class="skeleton-img"></div><div class="skeleton-text"></div><div class="skeleton-text short"></div></div>
+      </div>
+    </div>
+    <div class="section-container">
+      <div class="section-header"><h2><i class="fas fa-gamepad"></i> Popular Game Offers</h2><a href="#" onclick="showPage('games')" class="see-all">See All <i class="fas fa-arrow-right"></i></a></div>
+      <div class="offers-grid" id="topGamesGrid">
+        <div class="offer-skeleton"><div class="skeleton-img"></div><div class="skeleton-text"></div><div class="skeleton-text short"></div></div>
+        <div class="offer-skeleton"><div class="skeleton-img"></div><div class="skeleton-text"></div><div class="skeleton-text short"></div></div>
+        <div class="offer-skeleton"><div class="skeleton-img"></div><div class="skeleton-text"></div><div class="skeleton-text short"></div></div>
+      </div>
+    </div>
+    <div class="section-container">
+      <div class="section-header"><h2><i class="fas fa-poll"></i> Best Surveys</h2><a href="#" onclick="showPage('surveys')" class="see-all">See All <i class="fas fa-arrow-right"></i></a></div>
+      <div class="offers-grid" id="topSurveysGrid">
+        <div class="offer-skeleton"><div class="skeleton-img"></div><div class="skeleton-text"></div><div class="skeleton-text short"></div></div>
+        <div class="offer-skeleton"><div class="skeleton-img"></div><div class="skeleton-text"></div><div class="skeleton-text short"></div></div>
+      </div>
+    </div>
+    <div class="section-container">
+      <div class="section-header"><h2><i class="fas fa-tv"></i> Watch & Earn</h2><a href="#" onclick="showPage('watch-ads')" class="see-all">See All <i class="fas fa-arrow-right"></i></a></div>
+      <div class="ad-offers-row" id="adOffersRow">
+        <div class="ad-offer-card" onclick="watchRewardedAd()"><div class="ad-offer-icon"><i class="fas fa-play"></i></div><h4>Rewarded Video</h4><p>Watch a 30s video</p><span class="ad-reward">+50 Coins</span></div>
+        <div class="ad-offer-card" onclick="openScratchCard()"><div class="ad-offer-icon scratch"><i class="fas fa-hand-pointer"></i></div><h4>Scratch Card</h4><p>Scratch and win</p><span class="ad-reward">+50 to 500</span></div>
+        <div class="ad-offer-card" onclick="openSpinWheel()"><div class="ad-offer-icon spin"><i class="fas fa-dharmachakra"></i></div><h4>Spin Wheel</h4><p>Spin to win coins</p><span class="ad-reward">+25 to 1,000</span></div>
+        <div class="ad-offer-card" onclick="openMysteryBox()"><div class="ad-offer-icon mystery"><i class="fas fa-box-open"></i></div><h4>Mystery Box</h4><p>Open for surprise</p><span class="ad-reward">+100 to 2,000</span></div>
+      </div>
+    </div>
+    <div class="section-container">
+      <div class="section-header"><h2><i class="fas fa-calendar-day"></i> Daily Check-in</h2></div>
+      <div class="checkin-grid" id="checkinGrid">
+        <div class="checkin-day completed" data-day="1"><span class="checkin-num">1</span><span class="checkin-coin"><i class="fas fa-coins"></i></span><span class="checkin-value">100</span><i class="fas fa-check-circle"></i></div>
+        <div class="checkin-day completed" data-day="2"><span class="checkin-num">2</span><span class="checkin-coin"><i class="fas fa-coins"></i></span><span class="checkin-value">150</span><i class="fas fa-check-circle"></i></div>
+        <div class="checkin-day completed" data-day="3"><span class="checkin-num">3</span><span class="checkin-coin"><i class="fas fa-coins"></i></span><span class="checkin-value">200</span><i class="fas fa-check-circle"></i></div>
+        <div class="checkin-day today" data-day="4"><span class="checkin-num">4</span><span class="checkin-coin"><i class="fas fa-coins"></i></span><span class="checkin-value">300</span><div class="checkin-pulse"></div></div>
+        <div class="checkin-day" data-day="5"><span class="checkin-num">5</span><span class="checkin-coin"><i class="fas fa-coins"></i></span><span class="checkin-value">400</span></div>
+        <div class="checkin-day" data-day="6"><span class="checkin-num">6</span><span class="checkin-coin"><i class="fas fa-coins"></i></span><span class="checkin-value">500</span></div>
+        <div class="checkin-day bonus-day" data-day="7"><span class="checkin-num">7</span><span class="checkin-coin"><i class="fas fa-crown"></i></span><span class="checkin-value">2,000</span><span class="bonus-tag">BONUS</span></div>
+      </div>
+      <button class="btn btn-primary btn-full checkin-btn" id="checkinBtn" onclick="claimDailyCheckin()"><i class="fas fa-gift"></i> Check In Now</button>
+    </div>
+    <div class="section-container">
+      <div class="section-header"><h2><i class="fas fa-history"></i> Recently Completed</h2></div>
+      <div class="recent-list" id="recentList">
+        <div class="recent-empty"><i class="fas fa-inbox"></i><p>No completed offers yet. Start earning now!</p><button class="btn btn-primary" onclick="showPage('earn')"><i class="fas fa-coins"></i> Browse Offers</button></div>
+      </div>
+    </div>
+    <div class="section-container">
+      <div class="section-header"><h2><i class="fas fa-trophy"></i> Top Earners Today</h2><a href="#" onclick="showPage('leaderboard')" class="see-all">Full Leaderboard <i class="fas fa-arrow-right"></i></a></div>
+      <div class="leaderboard-preview" id="leaderboardPreview">
+        <div class="lb-item lb-gold"><span class="lb-rank">1</span><div class="lb-avatar"><i class="fas fa-user"></i></div><div class="lb-info"><span class="lb-name">Top Earner</span><span class="lb-earned">15,420 Coins</span></div><i class="fas fa-crown lb-crown"></i></div>
+        <div class="lb-item lb-silver"><span class="lb-rank">2</span><div class="lb-avatar"><i class="fas fa-user"></i></div><div class="lb-info"><span class="lb-name">Active User</span><span class="lb-earned">12,800 Coins</span></div></div>
+        <div class="lb-item lb-bronze"><span class="lb-rank">3</span><div class="lb-avatar"><i class="fas fa-user"></i></div><div class="lb-info"><span class="lb-name">Pro Earner</span><span class="lb-earned">9,350 Coins</span></div></div>
+      </div>
+    </div>
+    <div class="section-container">
+      <div class="section-header"><h2><i class="fas fa-star"></i> Popular Rewards</h2><a href="#" onclick="showPage('rewards-store')" class="see-all">View All <i class="fas fa-arrow-right"></i></a></div>
+      <div class="rewards-preview" id="rewardsPreview">
+        <div class="reward-preview-card" onclick="showPage('rewards-store')"><div class="rp-icon paypal"><i class="fab fa-paypal"></i></div><h4>PayPal</h4><span class="rp-price">From 5,000 Coins</span></div>
+        <div class="reward-preview-card" onclick="showPage('rewards-store')"><div class="rp-icon steam"><i class="fab fa-steam"></i></div><h4>Steam</h4><span class="rp-price">From 10,000 Coins</span></div>
+        <div class="reward-preview-card" onclick="showPage('rewards-store')"><div class="rp-icon google"><i class="fab fa-google-play"></i></div><h4>Google Play</h4><span class="rp-price">From 5,000 Coins</span></div>
+        <div class="reward-preview-card" onclick="showPage('rewards-store')"><div class="rp-icon apple"><i class="fab fa-apple"></i></div><h4>Apple Gift Card</h4><span class="rp-price">From 10,000 Coins</span></div>
+        <div class="reward-preview-card" onclick="showPage('rewards-store')"><div class="rp-icon roblox"><i class="fas fa-cube"></i></div><h4>Roblox</h4><span class="rp-price">From 5,000 Coins</span></div>
+        <div class="reward-preview-card" onclick="showPage('topup')"><div class="rp-icon freefire"><i class="fas fa-fire"></i></div><h4>Free Fire</h4><span class="rp-price">From 3,000 Coins</span></div>
+      </div>
+    </div>
+    <div class="section-container">
+      <div class="referral-cta">
+        <div class="referral-cta-content">
+          <h2><i class="fas fa-user-friends"></i> Invite Friends, Earn Together</h2>
+          <p>Share your referral link and earn 15% of everything your friends earn. Plus get bonus coins for each milestone!</p>
+          <div class="referral-cta-stats">
+            <span><i class="fas fa-users"></i> <span id="referralCount">0</span> Referrals</span>
+            <span><i class="fas fa-coins"></i> <span id="referralEarnings">0</span> Earned from Referrals</span>
+          </div>
+          <button class="btn btn-primary" onclick="showPage('referrals')"><i class="fas fa-share-alt"></i> Get Your Referral Link</button>
+        </div>
+        <div class="referral-cta-visual">
+          <div class="ref-person r1"><i class="fas fa-user"></i></div>
+          <div class="ref-person r2"><i class="fas fa-user"></i></div>
+          <div class="ref-person r3"><i class="fas fa-user"></i></div>
+          <div class="ref-arrow"><i class="fas fa-arrow-right"></i></div>
+          <div class="ref-you"><i class="fas fa-crown"></i></div>
+        </div>
+      </div>
+    </div>
+    <div class="section-container" id="accountStatusSection" style="display:none;">
+      <div class="account-status-card" id="accountStatusCard">
+        <div class="status-icon verified"><i class="fas fa-check-circle"></i></div>
+        <div class="status-info"><h4>Account Verified</h4><p>Your account is fully verified. You can withdraw up to your daily limit.</p></div>
+      </div>
+    </div>
+    <div class="section-container">
+      <div class="section-header"><h2><i class="fas fa-question-circle"></i> Frequently Asked Questions</h2><a href="#" onclick="showPage('faq')" class="see-all">View All <i class="fas fa-arrow-right"></i></a></div>
+      <div class="faq-mini">
+        <div class="faq-item-mini" onclick="toggleFaqMini(this)"><div class="faq-q"><span>How do I earn coins?</span><i class="fas fa-chevron-down"></i></div><div class="faq-a"><p>Complete offers from our offerwalls, play games, take surveys, watch ads, and check in daily to earn coins!</p></div></div>
+        <div class="faq-item-mini" onclick="toggleFaqMini(this)"><div class="faq-q"><span>How do I withdraw my earnings?</span><i class="fas fa-chevron-down"></i></div><div class="faq-a"><p>Go to the Wallet page, select your preferred withdrawal method, and enter the amount. Minimum withdrawal is 5,000 coins ($0.50).</p></div></div>
+        <div class="faq-item-mini" onclick="toggleFaqMini(this)"><div class="faq-q"><span>What is the coin conversion rate?</span><i class="fas fa-chevron-down"></i></div><div class="faq-a"><p>10,000 Coins = $1.00 USD. You can exchange coins for gift cards, game top-ups, or cash withdrawals.</p></div></div>
+        <div class="faq-item-mini" onclick="toggleFaqMini(this)"><div class="faq-q"><span>How does the referral system work?</span><i class="fas fa-chevron-down"></i></div><div class="faq-a"><p>Share your referral link with friends. You earn 15% of everything they earn, plus bonus coins when they reach milestones!</p></div></div>
+      </div>
+    </div>
+    <div class="section-container">
+      <div class="withdrawal-notice">
+        <i class="fas fa-bullhorn"></i>
+        <div><h4>Payouts Processed Daily</h4><p>All withdrawal requests are reviewed within 24 hours. Verified users get instant processing.</p></div>
+        <button class="btn btn-outline" onclick="showPage('withdraw')">Withdraw Now</button>
+      </div>
+    </div>
+    <div class="section-container"><div class="ad-container native-banner"><script async="async" data-cfasync="false" src="https://pl30883341.effectivecpmnetwork.com/f4263ddbfe2b4cb1e4ebdad01fc57d37/invoke.js"></script><div id="container-f4263ddbfe2b4cb1e4ebdad01fc57d37"></div></div></div>
+  </section>
+
+  <!-- ========== EARN PAGE ========== -->
+  <section id="page-earn" class="page">
+    <div class="page-header earn-header">
+      <h1><i class="fas fa-coins"></i> Earn Coins</h1>
+      <p>Choose your preferred way to earn. The more you complete, the more you earn!</p>
+    </div>
+    <div class="section-container">
+      <div class="earn-categories">
+        <button class="earn-cat active" data-cat="all" onclick="filterEarn('all')"><i class="fas fa-th"></i> All</button>
+        <button class="earn-cat" data-cat="offerwalls" onclick="filterEarn('offerwalls')"><i class="fas fa-hand-holding-usd"></i> Offerwalls</button>
+        <button class="earn-cat" data-cat="games" onclick="filterEarn('games')"><i class="fas fa-gamepad"></i> Games</button>
+        <button class="earn-cat" data-cat="surveys" onclick="filterEarn('surveys')"><i class="fas fa-poll"></i> Surveys</button>
+        <button class="earn-cat" data-cat="ads" onclick="filterEarn('ads')"><i class="fas fa-play-circle"></i> Watch Ads</button>
+        <button class="earn-cat" data-cat="tasks" onclick="filterEarn('tasks')"><i class="fas fa-tasks"></i> Tasks</button>
+      </div>
+      <div class="earn-filters">
+        <div class="filter-group"><label>Country</label><select id="earnCountryFilter" onchange="applyEarnFilters()"><option value="all">All Countries</option><option value="US">United States</option><option value="SA">Saudi Arabia</option><option value="EG">Egypt</option><option value="AE">UAE</option><option value="IN">India</option><option value="TR">Turkey</option></select></div>
+        <div class="filter-group"><label>Sort By</label><select id="earnSortFilter" onchange="applyEarnFilters()"><option value="reward-desc">Highest Reward</option><option value="reward-asc">Lowest Reward</option><option value="time-asc">Quickest</option><option value="rating-desc">Best Rated</option></select></div>
+        <div class="filter-group"><label>Device</label><select id="earnDeviceFilter" onchange="applyEarnFilters()"><option value="all">All Devices</option><option value="desktop">Desktop</option><option value="mobile">Mobile</option><option value="tablet">Tablet</option></select></div>
+        <div class="filter-group"><label>Search</label><div class="search-input"><i class="fas fa-search"></i><input type="text" id="earnSearch" placeholder="Search offers..." oninput="applyEarnFilters()"></div></div>
+      </div>
+    </div>
+    <div class="section-container">
+      <div class="section-header"><h2><i class="fas fa-star"></i> Recommended For You</h2></div>
+      <div class="offers-grid offers-list" id="earnOffersGrid"></div>
+    </div>
+    <div class="section-container"><div class="ad-container banner-468"><script>atOptions={key:'c26b6f67e990df9cd2681f276abe3231',format:'iframe',height:60,width:468,params:{}};</script><script src="https://www.highperformanceformat.com/c26b6f67e990df9cd2681f276abe3231/invoke.js"></script></div></div>
+    <div class="section-container">
+      <div class="section-header"><h2><i class="fas fa-list"></i> All Available Offers</h2><span class="offer-count" id="allOfferCount">0 offers</span></div>
+      <div class="offers-list" id="allOffersList"></div>
+      <div class="load-more-container"><button class="btn btn-outline" id="loadMoreOffers" onclick="loadMoreOffers()">Load More</button></div>
+    </div>
+  </section>
+
+  <!-- ========== OFFERWALLS PAGE ========== -->
+  <section id="page-offers" class="page">
+    <div class="page-header"><h1><i class="fas fa-hand-holding-usd"></i> Offerwalls</h1><p>Complete high-paying offers from our trusted providers.</p></div>
+    <div class="section-container">
+      <div class="provider-grid" id="providerGrid">
+        <div class="provider-card" onclick="openProvider('lootably')"><div class="provider-logo"><i class="fas fa-coins"></i></div><h3>Lootably</h3><p>High-paying offers & surveys</p><div class="provider-stats"><span><i class="fas fa-star"></i> 4.8</span><span><i class="fas fa-users"></i> 12.5K</span><span class="provider-earning">Up to $15</span></div></div>
+        <div class="provider-card" onclick="openProvider('adgate')"><div class="provider-logo adgate"><i class="fas fa-gem"></i></div><h3>AdGate Media</h3><p>Surveys & app installs</p><div class="provider-stats"><span><i class="fas fa-star"></i> 4.6</span><span><i class="fas fa-users"></i> 9.2K</span><span class="provider-earning">Up to $10</span></div></div>
+        <div class="provider-card" onclick="openProvider('offertoro')"><div class="provider-logo offertoro"><i class="fas fa-gift"></i></div><h3>OfferToro</h3><p>Game & app offers</p><div class="provider-stats"><span><i class="fas fa-star"></i> 4.5</span><span><i class="fas fa-users"></i> 8.7K</span><span class="provider-earning">Up to $12</span></div></div>
+        <div class="provider-card" onclick="openProvider('ayet')"><div class="provider-logo ayet"><i class="fas fa-bolt"></i></div><h3>Ayet Studios</h3><p>Premium game offers</p><div class="provider-stats"><span><i class="fas fa-star"></i> 4.7</span><span><i class="fas fa-users"></i> 7.1K</span><span class="provider-earning">Up to $15</span></div></div>
+        <div class="provider-card" onclick="openProvider('bitlabs')"><div class="provider-logo bitlabs"><i class="fas fa-chart-line"></i></div><h3>BitLabs</h3><p>High-paying surveys</p><div class="provider-stats"><span><i class="fas fa-star"></i> 4.4</span><span><i class="fas fa-users"></i> 5.8K</span><span class="provider-earning">Up to $5</span></div></div>
+        <div class="provider-card" onclick="openProvider('poll')"><div class="provider-logo poll"><i class="fas fa-poll"></i></div><h3>Pollfish</h3><p>Global surveys</p><div class="provider-stats"><span><i class="fas fa-star"></i> 4.3</span><span><i class="fas fa-users"></i> 6.4K</span><span class="provider-earning">Up to $3</span></div></div>
+      </div>
+    </div>
+    <div class="section-container"><div class="section-header"><h2>Recommended Offers</h2></div><div class="offers-grid" id="recommendedOffers"></div></div>
+  </section>
+
+  <!-- ========== GAMES PAGE ========== -->
+  <section id="page-games" class="page">
+    <div class="page-header games-header">
+      <h1><i class="fas fa-gamepad"></i> Game Offers</h1>
+      <p>Play games, reach milestones, and earn massive coin rewards!</p>
+      <div class="game-filter-bar">
+        <button class="gf-btn active" onclick="filterGames('all')">All Games</button>
+        <button class="gf-btn" onclick="filterGames('rpg')">RPG</button>
+        <button class="gf-btn" onclick="filterGames('strategy')">Strategy</button>
+        <button class="gf-btn" onclick="filterGames('casual')">Casual</button>
+        <button class="gf-btn" onclick="filterGames('puzzle')">Puzzle</button>
+        <button class="gf-btn" onclick="filterGames('simulation')">Simulation</button>
+      </div>
+    </div>
+    <div class="section-container"><div class="games-grid" id="gamesGrid"></div></div>
+    <div class="section-container">
+      <div class="section-header"><h2>Game Milestones Example</h2></div>
+      <div class="milestone-demo">
+        <div class="milestone-card">
+          <div class="mc-header"><i class="fas fa-gamepad"></i> Example Game</div>
+          <div class="mc-milestones">
+            <div class="mc-step completed"><div class="mc-icon"><i class="fas fa-download"></i></div><span>Install</span><span class="mc-reward">+100 Coins</span></div>
+            <div class="mc-connector"></div>
+            <div class="mc-step active"><div class="mc-icon"><i class="fas fa-star"></i></div><span>Level 5</span><span class="mc-reward">+500 Coins</span></div>
+            <div class="mc-connector"></div>
+            <div class="mc-step"><div class="mc-icon"><i class="fas fa-trophy"></i></div><span>Level 10</span><span class="mc-reward">+2,000 Coins</span></div>
+            <div class="mc-connector"></div>
+            <div class="mc-step"><div class="mc-icon"><i class="fas fa-crown"></i></div><span>Level 20</span><span class="mc-reward">+10,000 Coins</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== SURVEYS PAGE ========== -->
+  <section id="page-surveys" class="page">
+    <div class="page-header surveys-header"><h1><i class="fas fa-poll"></i> Surveys</h1><p>Share your opinion and earn coins. Surveys are quick and easy!</p></div>
+    <div class="section-container">
+      <div class="survey-stats-bar">
+        <div class="ss-item"><span class="ss-num" id="surveyAvailable">24</span><span>Available</span></div>
+        <div class="ss-item"><span class="ss-num" id="surveyCompleted">0</span><span>Completed</span></div>
+        <div class="ss-item"><span class="ss-num" id="surveyEarnings">$0</span><span>Survey Earnings</span></div>
+      </div>
+      <div class="surveys-list" id="surveysList"></div>
+    </div>
+  </section>
+
+  <!-- ========== WATCH ADS PAGE ========== -->
+  <section id="page-watch-ads" class="page">
+    <div class="page-header ads-header"><h1><i class="fas fa-play-circle"></i> Watch & Earn</h1><p>Earn coins by watching ads and trying your luck!</p></div>
+    <div class="section-container">
+      <div class="ads-earn-grid">
+        <div class="ads-earn-card" onclick="watchRewardedAd()"><div class="aec-icon"><i class="fas fa-video"></i></div><h3>Rewarded Video</h3><p>Watch a short video ad and earn coins instantly.</p><span class="aec-reward">+50 Coins per video</span><span class="aec-limit" id="adVideoLimit">Remaining: 10/day</span><button class="btn btn-primary"><i class="fas fa-play"></i> Watch Now</button></div>
+        <div class="ads-earn-card" onclick="watchInterstitial()"><div class="aec-icon interstitial"><i class="fas fa-tv"></i></div><h3>Interstitial Ad</h3><p>View an interstitial ad for bonus coins.</p><span class="aec-reward">+30 Coins per view</span><span class="aec-limit" id="adInterLimit">Remaining: 15/day</span><button class="btn btn-primary"><i class="fas fa-play"></i> Watch Now</button></div>
+        <div class="ads-earn-card" onclick="openSpinWheel()"><div class="aec-icon spin"><i class="fas fa-dharmachakra"></i></div><h3>Spin Wheel</h3><p>Watch an ad, then spin the wheel to win!</p><span class="aec-reward">+25 to 1,000 Coins</span><span class="aec-limit" id="spinLimit">Remaining: 5/day</span><button class="btn btn-primary"><i class="fas fa-play"></i> Spin Now</button></div>
+        <div class="ads-earn-card" onclick="openScratchCard()"><div class="aec-icon scratch"><i class="fas fa-hand-pointer"></i></div><h3>Scratch Card</h3><p>Scratch the card to reveal your prize!</p><span class="aec-reward">+50 to 500 Coins</span><span class="aec-limit" id="scratchLimit">Remaining: 5/day</span><button class="btn btn-primary"><i class="fas fa-play"></i> Scratch Now</button></div>
+        <div class="ads-earn-card" onclick="openMysteryBox()"><div class="aec-icon mystery"><i class="fas fa-box-open"></i></div><h3>Mystery Box</h3><p>Open a mystery box for surprise rewards!</p><span class="aec-reward">+100 to 2,000 Coins</span><span class="aec-limit" id="mysteryLimit">Remaining: 3/day</span><button class="btn btn-primary"><i class="fas fa-play"></i> Open Now</button></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== DAILY REWARDS PAGE ========== -->
+  <section id="page-daily" class="page">
+    <div class="page-header daily-header"><h1><i class="fas fa-calendar-check"></i> Daily Rewards</h1><p>Check in every day to earn increasing rewards. Do not break your streak!</p></div>
+    <div class="section-container">
+      <div class="daily-rewards-grid">
+        <div class="daily-card checkin-card-large">
+          <div class="dc-header"><i class="fas fa-calendar-day"></i> Daily Check-in</div>
+          <div class="dc-content">
+            <div class="streak-display"><div class="sd-circle"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="none" stroke="#333" stroke-width="8"/><circle cx="50" cy="50" r="45" fill="none" stroke="#00d4ff" stroke-width="8" stroke-dasharray="283" stroke-dashoffset="180" stroke-linecap="round" transform="rotate(-90 50 50)"/></svg><div class="sd-text"><span id="dailyStreakLarge">0</span><small>Day Streak</small></div></div></div>
+            <button class="btn btn-primary btn-lg" id="dailyClaimBtn" onclick="claimDailyCheckin()"><i class="fas fa-gift"></i> Claim Daily Reward</button>
+            <div class="daily-info">
+              <span><i class="fas fa-fire"></i> Current streak: <strong id="currentStreak">0</strong> days</span>
+              <span><i class="fas fa-coins"></i> Today reward: <strong id="todayReward">100</strong> coins</span>
+              <span><i class="fas fa-calendar-week"></i> Max streak reward: 2,000 coins</span>
+            </div>
+          </div>
+        </div>
+        <div class="daily-card streak-freeze-card">
+          <div class="dc-header"><i class="fas fa-snowflake"></i> Streak Freeze</div>
+          <div class="dc-content">
+            <p>Protect your streak! Use a Streak Freeze to miss one day without losing your streak.</p>
+            <div class="freeze-count"><i class="fas fa-snowflake"></i><span>You have <strong id="freezeCount">2</strong> freezes</span></div>
+            <button class="btn btn-outline" onclick="buyStreakFreeze()">Buy Freeze (500 Coins)</button>
+          </div>
+        </div>
+        <div class="daily-card multiplier-card">
+          <div class="dc-header"><i class="fas fa-times"></i> Bonus Multiplier</div>
+          <div class="dc-content">
+            <p>Your streak increases your earnings multiplier!</p>
+            <div class="multiplier-display"><span class="mult-value" id="multValue">1.0x</span><span class="mult-label">Current Multiplier</span></div>
+            <div class="mult-tiers">
+              <div class="mult-tier active"><span>3 days</span><span>1.1x</span></div>
+              <div class="mult-tier"><span>7 days</span><span>1.25x</span></div>
+              <div class="mult-tier"><span>14 days</span><span>1.5x</span></div>
+              <div class="mult-tier"><span>30 days</span><span>2.0x</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== TASKS PAGE ========== -->
+  <section id="page-tasks" class="page">
+    <div class="page-header"><h1><i class="fas fa-tasks"></i> Tasks</h1><p>Complete daily and weekly tasks to earn bonus coins!</p></div>
+    <div class="section-container">
+      <div class="tasks-tabs">
+        <button class="task-tab active" onclick="switchTaskTab('daily')">Daily Tasks</button>
+        <button class="task-tab" onclick="switchTaskTab('weekly')">Weekly Tasks</button>
+        <button class="task-tab" onclick="switchTaskTab('achievements')">Achievements</button>
+      </div>
+      <div class="tasks-list" id="tasksList"></div>
+    </div>
+  </section>
+
+  <!-- ========== CHALLENGES PAGE ========== -->
+  <section id="page-challenges" class="page">
+    <div class="page-header"><h1><i class="fas fa-flag-checkered"></i> Challenges</h1><p>Take on challenges for bigger rewards!</p></div>
+    <div class="section-container">
+      <div class="challenges-grid" id="challengesGrid">
+        <div class="challenge-card active-challenge"><div class="ch-badge"><i class="fas fa-fire"></i> Active</div><h3>Complete 5 Offers</h3><p>Finish 5 offers from any provider to earn a bonus!</p><div class="ch-progress"><div class="ch-bar" style="width:40%"></div></div><span class="ch-status">2/5 completed</span><span class="ch-reward">Reward: +2,000 Coins</span></div>
+        <div class="challenge-card active-challenge"><div class="ch-badge"><i class="fas fa-clock"></i> 5 days left</div><h3>Earn 10,000 Coins</h3><p>Earn a total of 10,000 coins this week.</p><div class="ch-progress"><div class="ch-bar" style="width:65%"></div></div><span class="ch-status">6,500/10,000 coins</span><span class="ch-reward">Reward: +5,000 Coins</span></div>
+        <div class="challenge-card"><div class="ch-badge"><i class="fas fa-calendar"></i> Monthly</div><h3>Refer 3 Friends</h3><p>Invite 3 friends who complete their first offer.</p><div class="ch-progress"><div class="ch-bar" style="width:0%"></div></div><span class="ch-status">0/3 referrals</span><span class="ch-reward">Reward: +10,000 Coins</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== REFERRALS PAGE ========== -->
+  <section id="page-referrals" class="page">
+    <div class="page-header referrals-header"><h1><i class="fas fa-user-friends"></i> Referrals</h1><p>Invite friends and earn 15% of everything they earn!</p></div>
+    <div class="section-container">
+      <div class="referral-overview">
+        <div class="ref-stat-card"><div class="rsc-icon"><i class="fas fa-link"></i></div><span class="rsc-value" id="refLinkClicks">0</span><span class="rsc-label">Link Clicks</span></div>
+        <div class="ref-stat-card"><div class="rsc-icon"><i class="fas fa-user-plus"></i></div><span class="rsc-value" id="refSignups">0</span><span class="rsc-label">Sign Ups</span></div>
+        <div class="ref-stat-card"><div class="rsc-icon"><i class="fas fa-check-circle"></i></div><span class="rsc-value" id="refActive">0</span><span class="rsc-label">Active Referrals</span></div>
+        <div class="ref-stat-card"><div class="rsc-icon"><i class="fas fa-coins"></i></div><span class="rsc-value" id="refTotalEarned">0</span><span class="rsc-label">Coins Earned</span></div>
+      </div>
+      <div class="referral-share-section">
+        <h3>Your Referral Link</h3>
+        <div class="ref-link-box"><input type="text" id="referralLink" readonly><button class="btn btn-primary" onclick="copyReferralLink()"><i class="fas fa-copy"></i> Copy</button></div>
+        <div class="referral-code-box"><h4>Your Referral Code</h4><span class="ref-code" id="referralCode">LOADING</span><button class="btn btn-outline btn-sm" onclick="copyReferralCode()"><i class="fas fa-copy"></i></button></div>
+        <div class="social-share-btns">
+          <button class="btn-social share-whatsapp" onclick="shareReferral('whatsapp')"><i class="fab fa-whatsapp"></i> WhatsApp</button>
+          <button class="btn-social share-telegram" onclick="shareReferral('telegram')"><i class="fab fa-telegram-plane"></i> Telegram</button>
+          <button class="btn-social share-twitter" onclick="shareReferral('twitter')"><i class="fab fa-twitter"></i> Twitter</button>
+          <button class="btn-social share-facebook" onclick="shareReferral('facebook')"><i class="fab fa-facebook-f"></i> Facebook</button>
+        </div>
+      </div>
+      <div class="referral-milestones">
+        <h3><i class="fas fa-trophy"></i> Referral Milestones</h3>
+        <div class="milestones-list">
+          <div class="milestone-item completed"><i class="fas fa-check-circle"></i><span>Refer 1 friend</span><span class="ms-reward">+500 Coins</span></div>
+          <div class="milestone-item"><i class="fas fa-circle"></i><span>Refer 5 friends</span><span class="ms-reward">+2,000 Coins</span></div>
+          <div class="milestone-item"><i class="fas fa-circle"></i><span>Refer 10 friends</span><span class="ms-reward">+5,000 Coins</span></div>
+          <div class="milestone-item"><i class="fas fa-circle"></i><span>Refer 25 friends</span><span class="ms-reward">+15,000 Coins</span></div>
+          <div class="milestone-item"><i class="fas fa-circle"></i><span>Refer 50 friends</span><span class="ms-reward">+35,000 Coins</span></div>
+          <div class="milestone-item"><i class="fas fa-circle"></i><span>Refer 100 friends</span><span class="ms-reward">+75,000 Coins</span></div>
+        </div>
+      </div>
+      <div class="referral-list-section">
+        <h3><i class="fas fa-users"></i> Your Referrals</h3>
+        <div class="referral-users-list" id="referralUsersList"><div class="empty-state"><i class="fas fa-user-friends"></i><p>No referrals yet. Share your link to start earning!</p></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== LEADERBOARD PAGE ========== -->
+  <section id="page-leaderboard" class="page">
+    <div class="page-header leaderboard-header">
+      <h1><i class="fas fa-trophy"></i> Leaderboard</h1>
+      <p>See who is earning the most this period!</p>
+      <div class="lb-tabs">
+        <button class="lb-tab active" onclick="switchLeaderboard('daily')">Today</button>
+        <button class="lb-tab" onclick="switchLeaderboard('weekly')">This Week</button>
+        <button class="lb-tab" onclick="switchLeaderboard('monthly')">This Month</button>
+        <button class="lb-tab" onclick="switchLeaderboard('alltime')">All Time</button>
+      </div>
+    </div>
+    <div class="section-container">
+      <div class="leaderboard-full" id="leaderboardFull">
+        <div class="lb-top-3">
+          <div class="lb-top-item lb-top-2"><div class="lb-medal silver"><i class="fas fa-medal"></i></div><div class="lb-top-avatar"><i class="fas fa-user"></i></div><span class="lb-top-name">2nd Place</span><span class="lb-top-coins">12,800</span></div>
+          <div class="lb-top-item lb-top-1"><div class="lb-medal gold"><i class="fas fa-crown"></i></div><div class="lb-top-avatar"><i class="fas fa-user"></i></div><span class="lb-top-name">1st Place</span><span class="lb-top-coins">15,420</span></div>
+          <div class="lb-top-item lb-top-3"><div class="lb-medal bronze"><i class="fas fa-medal"></i></div><div class="lb-top-avatar"><i class="fas fa-user"></i></div><span class="lb-top-name">3rd Place</span><span class="lb-top-coins">9,350</span></div>
+        </div>
+        <div class="lb-list" id="lbList"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== REWARDS STORE PAGE ========== -->
+  <section id="page-rewards-store" class="page">
+    <div class="page-header store-header"><h1><i class="fas fa-store"></i> Rewards Store</h1><p>Redeem your coins for real rewards!</p></div>
+    <div class="section-container">
+      <div class="store-categories">
+        <button class="store-cat active" onclick="filterStore('all')"><i class="fas fa-th"></i> All</button>
+        <button class="store-cat" onclick="filterStore('paypal')"><i class="fab fa-paypal"></i> PayPal</button>
+        <button class="store-cat" onclick="filterStore('crypto')"><i class="fab fa-bitcoin"></i> Crypto</button>
+        <button class="store-cat" onclick="filterStore('gaming')"><i class="fas fa-gamepad"></i> Gaming</button>
+        <button class="store-cat" onclick="filterStore('giftcards')"><i class="fas fa-gift"></i> Gift Cards</button>
+        <button class="store-cat" onclick="filterStore('mobile')"><i class="fas fa-mobile-alt"></i> Mobile Top-Up</button>
+      </div>
+      <div class="store-grid" id="storeGrid"></div>
+    </div>
+  </section>
+
+  <!-- ========== TOP UP PAGE ========== -->
+  <section id="page-topup" class="page">
+    <div class="page-header topup-header"><h1><i class="fas fa-mobile-alt"></i> Game Top-Up</h1><p>Top up your favorite games directly!</p></div>
+    <div class="section-container">
+      <div class="topup-games-grid" id="topupGamesGrid">
+        <div class="topup-game-card" onclick="selectTopUpGame('freefire')"><div class="tg-icon"><i class="fas fa-fire"></i></div><h4>Free Fire</h4><span>Diamonds</span></div>
+        <div class="topup-game-card" onclick="selectTopUpGame('pubg')"><div class="tg-icon pubg"><i class="fas fa-crosshairs"></i></div><h4>PUBG Mobile</h4><span>UC</span></div>
+        <div class="topup-game-card" onclick="selectTopUpGame('roblox')"><div class="tg-icon roblox"><i class="fas fa-cube"></i></div><h4>Roblox</h4><span>Robux</span></div>
+        <div class="topup-game-card" onclick="selectTopUpGame('valorant')"><div class="tg-icon valorant"><i class="fas fa-bolt"></i></div><h4>Valorant</h4><span>VP</span></div>
+        <div class="topup-game-card" onclick="selectTopUpGame('mobilelegends')"><div class="tg-icon ml"><i class="fas fa-shield-alt"></i></div><h4>Mobile Legends</h4><span>Diamonds</span></div>
+        <div class="topup-game-card" onclick="selectTopUpGame('fcmobile')"><div class="tg-icon fc"><i class="fas fa-futbol"></i></div><h4>FC Mobile</h4><span>FC Points</span></div>
+        <div class="topup-game-card" onclick="selectTopUpGame('clashofclans')"><div class="tg-icon coc"><i class="fas fa-chess-rook"></i></div><h4>Clash of Clans</h4><span>Gems</span></div>
+        <div class="topup-game-card" onclick="selectTopUpGame('clashroyale')"><div class="tg-icon cr"><i class="fas fa-chess-knight"></i></div><h4>Clash Royale</h4><span>Gems</span></div>
+        <div class="topup-game-card" onclick="selectTopUpGame('fortnite')"><div class="tg-icon fortnite"><i class="fas fa-bolt"></i></div><h4>Fortnite</h4><span>V-Bucks</span></div>
+        <div class="topup-game-card" onclick="selectTopUpGame('steam')"><div class="tg-icon steam"><i class="fab fa-steam"></i></div><h4>Steam</h4><span>Wallet</span></div>
+        <div class="topup-game-card" onclick="selectTopUpGame('playstation')"><div class="tg-icon ps"><i class="fab fa-playstation"></i></div><h4>PlayStation</h4><span>PSN Card</span></div>
+        <div class="topup-game-card" onclick="selectTopUpGame('xbox')"><div class="tg-icon xbox"><i class="fab fa-xbox"></i></div><h4>Xbox</h4><span>Gift Card</span></div>
+      </div>
+      <div class="topup-form-container" id="topupFormContainer" style="display:none;">
+        <div class="topup-form-card">
+          <button class="back-btn" onclick="closeTopUpForm()"><i class="fas fa-arrow-left"></i> Back</button>
+          <h3 id="topupGameTitle">Top Up</h3>
+          <form onsubmit="submitTopUp(event)">
+            <div class="form-group"><label>Region / Server</label><select id="topupRegion" required><option value="middle-east">Middle East</option><option value="asia">Asia</option><option value="europe">Europe</option><option value="na">North America</option></select></div>
+            <div class="form-group"><label>Player ID</label><input type="text" id="topupPlayerId" placeholder="Enter your Player ID" required></div>
+            <div class="form-group" id="topupServerGroup" style="display:none;"><label>Server ID</label><input type="text" id="topupServerId" placeholder="Enter Server ID"></div>
+            <div class="form-group">
+              <label>Select Package</label>
+              <div class="topup-packages" id="topupPackages">
+                <label class="package-option"><input type="radio" name="topupPkg" value="100" required><div class="pkg-card"><span class="pkg-amount">100</span><span class="pkg-cost">3,000 Coins</span></div></label>
+                <label class="package-option"><input type="radio" name="topupPkg" value="310"><div class="pkg-card"><span class="pkg-amount">310</span><span class="pkg-cost">8,000 Coins</span></div></label>
+                <label class="package-option"><input type="radio" name="topupPkg" value="520"><div class="pkg-card"><span class="pkg-amount">520</span><span class="pkg-cost">12,000 Coins</span></div></label>
+                <label class="package-option"><input type="radio" name="topupPkg" value="1060"><div class="pkg-card"><span class="pkg-amount">1,060</span><span class="pkg-cost">22,000 Coins</span></div></label>
+              </div>
+            </div>
+            <button type="submit" class="btn btn-primary btn-full"><i class="fas fa-paper-plane"></i> Confirm Top-Up</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== WITHDRAW PAGE ========== -->
+  <section id="page-withdraw" class="page">
+    <div class="page-header withdraw-header"><h1><i class="fas fa-money-bill-wave"></i> Withdraw</h1><p>Convert your coins to real money or gift cards!</p></div>
+    <div class="section-container">
+      <div class="withdraw-balance-bar">
+        <div class="wb-item"><span class="wb-label">Available</span><span class="wb-value" id="withdrawAvail">0 Coins</span></div>
+        <div class="wb-item"><span class="wb-label">Pending</span><span class="wb-value" id="withdrawPending">0 Coins</span></div>
+        <div class="wb-item"><span class="wb-label">Min. Withdrawal</span><span class="wb-value">5,000 Coins</span></div>
+      </div>
+      <div class="withdraw-methods" id="withdrawMethods">
+        <h3>Select Withdrawal Method</h3>
+        <div class="wm-grid">
+          <div class="wm-card" onclick="selectWithdrawMethod('paypal')"><div class="wm-icon paypal"><i class="fab fa-paypal"></i></div><h4>PayPal</h4><span>5,000 coins = $0.50</span><span class="wm-time">Instant - 24h</span></div>
+          <div class="wm-card" onclick="selectWithdrawMethod('crypto')"><div class="wm-icon crypto"><i class="fab fa-bitcoin"></i></div><h4>Crypto (USDT)</h4><span>10,000 coins = $1.00</span><span class="wm-time">Instant - 24h</span></div>
+          <div class="wm-card" onclick="selectWithdrawMethod('mobile')"><div class="wm-icon mobile"><i class="fas fa-mobile-alt"></i></div><h4>Mobile Top-Up</h4><span>5,000 coins = $0.50</span><span class="wm-time">Instant</span></div>
+        </div>
+      </div>
+      <div class="withdraw-form-container" id="withdrawFormContainer" style="display:none;">
+        <div class="withdraw-form-card">
+          <button class="back-btn" onclick="closeWithdrawForm()"><i class="fas fa-arrow-left"></i> Back</button>
+          <h3 id="withdrawMethodTitle">Withdraw</h3>
+          <form onsubmit="submitWithdrawal(event)">
+            <div class="form-group"><label>Amount (Coins)</label><input type="number" id="withdrawAmount" min="5000" step="100" placeholder="Enter amount" required oninput="calculateWithdraw()"><div class="withdraw-calc" id="withdrawCalc"><span>You will receive: <strong>$0.00</strong></span></div></div>
+            <div class="form-group" id="withdrawEmailGroup"><label>PayPal Email</label><input type="email" id="withdrawPaypalEmail" placeholder="your@email.com" required></div>
+            <div class="form-group" id="withdrawCryptoGroup" style="display:none;"><label>USDT Wallet Address (TRC20)</label><input type="text" id="withdrawCryptoAddr" placeholder="Enter TRC20 address"></div>
+            <div class="withdraw-fee-info"><span>Fee: 5% (250 coins min)</span><span>Processing: 1-24 hours</span></div>
+            <button type="submit" class="btn btn-primary btn-full"><i class="fas fa-paper-plane"></i> Request Withdrawal</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== WALLET PAGE ========== -->
+  <section id="page-wallet" class="page">
+    <div class="page-header wallet-header"><h1><i class="fas fa-wallet"></i> Wallet</h1><p>Manage your coins and view your balance history.</p></div>
+    <div class="section-container">
+      <div class="wallet-overview">
+        <div class="wallet-main-balance"><div class="wmb-label">Available Balance</div><div class="wmb-amount"><i class="fas fa-coins"></i> <span id="walletBalance">0</span></div><div class="wmb-usd">= $<span id="walletBalanceUSD">0.00</span></div></div>
+        <div class="wallet-sub-balances">
+          <div class="wsb-item"><span class="wsb-label"><i class="fas fa-clock"></i> Pending</span><span class="wsb-value" id="walletPending">0</span></div>
+          <div class="wsb-item"><span class="wsb-label"><i class="fas fa-lock"></i> Locked</span><span class="wsb-value" id="walletLocked">0</span></div>
+          <div class="wsb-item"><span class="wsb-label"><i class="fas fa-arrow-up"></i> Total Earned</span><span class="wsb-value" id="walletTotalEarned">0</span></div>
+          <div class="wsb-item"><span class="wsb-label"><i class="fas fa-arrow-down"></i> Total Spent</span><span class="wsb-value" id="walletTotalSpent">0</span></div>
+          <div class="wsb-item"><span class="wsb-label"><i class="fas fa-money-bill-wave"></i> Total Withdrawn</span><span class="wsb-value" id="walletTotalWithdrawn">0</span></div>
+        </div>
+      </div>
+      <div class="wallet-actions">
+        <button class="btn btn-primary" onclick="showPage('earn')"><i class="fas fa-coins"></i> Earn More</button>
+        <button class="btn btn-outline" onclick="showPage('withdraw')"><i class="fas fa-money-bill-wave"></i> Withdraw</button>
+        <button class="btn btn-outline" onclick="showPage('topup')"><i class="fas fa-mobile-alt"></i> Top Up</button>
+        <button class="btn btn-outline" onclick="showPage('rewards-store')"><i class="fas fa-store"></i> Rewards</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== TRANSACTIONS PAGE ========== -->
+  <section id="page-transactions" class="page">
+    <div class="page-header"><h1><i class="fas fa-history"></i> Transactions</h1><p>View your complete coin and order history.</p></div>
+    <div class="section-container">
+      <div class="tx-filters"><select id="txTypeFilter" onchange="filterTransactions()"><option value="all">All Types</option><option value="earn">Earnings</option><option value="spend">Spending</option><option value="withdrawal">Withdrawals</option><option value="topup">Top-Ups</option><option value="bonus">Bonuses</option><option value="referral">Referrals</option></select></div>
+      <div class="transactions-list" id="transactionsList"><div class="empty-state"><i class="fas fa-receipt"></i><p>No transactions yet</p></div></div>
+    </div>
+  </section>
+
+  <!-- ========== PROFILE PAGE ========== -->
+  <section id="page-profile" class="page">
+    <div class="page-header profile-header"><h1><i class="fas fa-user-circle"></i> Profile</h1></div>
+    <div class="section-container">
+      <div class="profile-card">
+        <div class="profile-cover"></div>
+        <div class="profile-main">
+          <div class="profile-avatar-large" id="profileAvatar"><i class="fas fa-user"></i><button class="avatar-edit-btn"><i class="fas fa-camera"></i></button></div>
+          <h2 id="profileUsername">User</h2>
+          <p class="profile-email" id="profileEmail">user@email.com</p>
+          <div class="profile-badges">
+            <span class="badge verified"><i class="fas fa-check-circle"></i> Verified</span>
+            <span class="badge level" id="profileLevelBadge">Level 1</span>
+          </div>
+        </div>
+        <div class="profile-stats-grid">
+          <div class="ps-item"><span class="ps-value" id="profileTotalEarned">0</span><span class="ps-label">Total Earned</span></div>
+          <div class="ps-item"><span class="ps-value" id="profileOffersCompleted">0</span><span class="ps-label">Offers Done</span></div>
+          <div class="ps-item"><span class="ps-value" id="profileWithdrawals">0</span><span class="ps-label">Withdrawals</span></div>
+          <div class="ps-item"><span class="ps-value" id="profileReferrals">0</span><span class="ps-label">Referrals</span></div>
+          <div class="ps-item"><span class="ps-value" id="profileJoinDate">-</span><span class="ps-label">Member Since</span></div>
+          <div class="ps-item"><span class="ps-value" id="profileCountry">-</span><span class="ps-label">Country</span></div>
+        </div>
+      </div>
+      <div class="profile-level-section">
+        <h3><i class="fas fa-layer-group"></i> Level & XP</h3>
+        <div class="level-display">
+          <div class="level-circle"><span id="profileLevelNum">1</span></div>
+          <div class="level-progress"><div class="level-bar"><div class="level-fill" id="profileXpFill" style="width:20%"></div></div><span class="level-xp-text"><span id="profileCurrentXp">200</span> / <span id="profileNextXp">1,000</span> XP</span></div>
+        </div>
+        <div class="level-rewards-list">
+          <div class="lr-item unlocked"><i class="fas fa-check"></i> Level 1: Basic access</div>
+          <div class="lr-item locked"><i class="fas fa-lock"></i> Level 5: Higher withdrawal limits</div>
+          <div class="lr-item locked"><i class="fas fa-lock"></i> Level 10: Exclusive offers</div>
+          <div class="lr-item locked"><i class="fas fa-lock"></i> Level 15: Premium rewards access</div>
+          <div class="lr-item locked"><i class="fas fa-lock"></i> Level 20: VIP status</div>
+        </div>
+      </div>
+      <div class="profile-badges-section">
+        <h3><i class="fas fa-medal"></i> Badges</h3>
+        <div class="badges-grid">
+          <div class="badge-item earned"><i class="fas fa-baby"></i><span>Newcomer</span></div>
+          <div class="badge-item"><i class="fas fa-fire"></i><span>On Fire</span></div>
+          <div class="badge-item"><i class="fas fa-trophy"></i><span>Champion</span></div>
+          <div class="badge-item"><i class="fas fa-user-friends"></i><span>Social</span></div>
+          <div class="badge-item"><i class="fas fa-gem"></i><span>Diamond</span></div>
+          <div class="badge-item"><i class="fas fa-crown"></i><span>King</span></div>
+        </div>
+      </div>
+      <div class="profile-devices-section">
+        <h3><i class="fas fa-laptop"></i> Devices</h3>
+        <div class="devices-list" id="devicesList"><div class="device-item current"><i class="fas fa-desktop"></i><div class="device-info"><span>This Device</span><span class="device-time">Currently active</span></div><span class="device-badge current">Current</span></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== NOTIFICATIONS PAGE ========== -->
+  <section id="page-notifications-page" class="page">
+    <div class="page-header"><h1><i class="fas fa-bell"></i> Notifications</h1><div class="page-header-actions"><button class="btn btn-outline btn-sm" onclick="markAllRead()">Mark All Read</button></div></div>
+    <div class="section-container"><div class="notifications-full-list" id="notificationsFullList"><div class="empty-state"><i class="fas fa-bell-slash"></i><p>No notifications yet</p></div></div></div>
+  </section>
+
+  <!-- ========== SETTINGS PAGE ========== -->
+  <section id="page-settings" class="page">
+    <div class="page-header"><h1><i class="fas fa-cog"></i> Settings</h1></div>
+    <div class="section-container">
+      <div class="settings-sections">
+        <div class="settings-card"><h3><i class="fas fa-user-edit"></i> Account</h3><div class="form-group"><label>Username</label><input type="text" id="settingsUsername"></div><div class="form-group"><label>Email</label><input type="email" id="settingsEmail" disabled></div><div class="form-group"><label>Country</label><select id="settingsCountry"><option value="SA">Saudi Arabia</option><option value="AE">UAE</option><option value="EG">Egypt</option><option value="IQ">Iraq</option><option value="OTHER">Other</option></select></div><button class="btn btn-primary" onclick="saveSettings()">Save Changes</button></div>
+        <div class="settings-card"><h3><i class="fas fa-lock"></i> Change Password</h3><div class="form-group"><label>Current Password</label><input type="password" id="settingsCurrentPass"></div><div class="form-group"><label>New Password</label><input type="password" id="settingsNewPass"></div><button class="btn btn-primary" onclick="changePassword()">Update Password</button></div>
+        <div class="settings-card"><h3><i class="fas fa-bell"></i> Notifications</h3><div class="toggle-row"><span>Email notifications</span><label class="toggle"><input type="checkbox" id="notifEmail" checked><span class="slider"></span></label></div><div class="toggle-row"><span>Offer alerts</span><label class="toggle"><input type="checkbox" id="notifOffers" checked><span class="slider"></span></label></div><div class="toggle-row"><span>Marketing emails</span><label class="toggle"><input type="checkbox" id="notifMarketing"><span class="slider"></span></label></div></div>
+        <div class="settings-card danger-zone"><h3><i class="fas fa-exclamation-triangle"></i> Danger Zone</h3><p>Deleting your account is irreversible.</p><button class="btn btn-danger" onclick="confirmDeleteAccount()">Delete Account</button></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== SECURITY PAGE ========== -->
+  <section id="page-security" class="page">
+    <div class="page-header"><h1><i class="fas fa-shield-alt"></i> Security</h1></div>
+    <div class="section-container">
+      <div class="security-cards">
+        <div class="security-card"><div class="sc-icon"><i class="fas fa-key"></i></div><h4>Change Password</h4><p>Update your account password regularly.</p><button class="btn btn-outline" onclick="showPage('settings')">Change</button></div>
+        <div class="security-card"><div class="sc-icon"><i class="fas fa-envelope-open-text"></i></div><h4>Email Verification</h4><p id="emailVerifStatus">Verify your email to unlock withdrawals.</p><button class="btn btn-outline" id="emailVerifBtn" onclick="sendVerificationEmail()">Verify Email</button></div>
+        <div class="security-card"><div class="sc-icon"><i class="fas fa-mobile-alt"></i></div><h4>Two-Factor Auth</h4><p>Add an extra layer of security to your account.</p><button class="btn btn-outline" onclick="enable2FA()">Enable 2FA</button></div>
+        <div class="security-card"><div class="sc-icon"><i class="fas fa-history"></i></div><h4>Login History</h4><p>Review recent login activity.</p><button class="btn btn-outline" onclick="viewLoginHistory()">View History</button></div>
+        <div class="security-card"><div class="sc-icon"><i class="fas fa-shield-alt"></i></div><h4>Active Sessions</h4><p>Manage your active sessions.</p><button class="btn btn-outline" onclick="viewSessions()">Manage</button></div>
+      </div>
+      <div class="security-log"><h3>Recent Activity</h3><div class="activity-log" id="activityLog"></div></div>
+    </div>
+  </section>
+
+  <!-- ========== SUPPORT PAGE ========== -->
+  <section id="page-support" class="page">
+    <div class="page-header"><h1><i class="fas fa-headset"></i> Support</h1><p>Need help? We are here for you.</p></div>
+    <div class="section-container">
+      <div class="support-options">
+        <div class="support-card" onclick="showPage('faq')"><i class="fas fa-question-circle"></i><h4>FAQ</h4><p>Find answers to common questions</p></div>
+        <div class="support-card" onclick="openTicketForm()"><i class="fas fa-ticket-alt"></i><h4>Submit Ticket</h4><p>Create a support request</p></div>
+      </div>
+      <div class="ticket-form" id="ticketForm" style="display:none;">
+        <h3>Submit Support Ticket</h3>
+        <form onsubmit="submitTicket(event)">
+          <div class="form-group"><label>Category</label><select id="ticketCategory" required><option value="">Select category</option><option value="account">Account Issues</option><option value="withdrawal">Withdrawal Problems</option><option value="offer">Offer Not Credited</option><option value="topup">Top-Up Issues</option><option value="refund">Refund Request</option><option value="bug">Bug Report</option><option value="other">Other</option></select></div>
+          <div class="form-group"><label>Priority</label><select id="ticketPriority"><option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option><option value="urgent">Urgent</option></select></div>
+          <div class="form-group"><label>Subject</label><input type="text" id="ticketSubject" placeholder="Brief description" required></div>
+          <div class="form-group"><label>Description</label><textarea id="ticketDesc" placeholder="Provide details..." rows="5" required></textarea></div>
+          <div class="form-group"><label>Order/Offer ID (optional)</label><input type="text" id="ticketOrderId"></div>
+          <button type="submit" class="btn btn-primary btn-full"><i class="fas fa-paper-plane"></i> Submit Ticket</button>
+        </form>
+      </div>
+      <div class="user-tickets"><h3>Your Tickets</h3><div class="tickets-list" id="userTicketsList"><div class="empty-state"><i class="fas fa-ticket-alt"></i><p>No support tickets</p></div></div></div>
+    </div>
+  </section>
+
+  <!-- ========== FAQ PAGE ========== -->
+  <section id="page-faq" class="page">
+    <div class="page-header"><h1><i class="fas fa-question-circle"></i> FAQ</h1><p>Frequently Asked Questions</p></div>
+    <div class="section-container">
+      <div class="faq-list">
+        <div class="faq-item" onclick="toggleFaq(this)"><div class="faq-question"><span>What is ReWords?</span><i class="fas fa-chevron-down"></i></div><div class="faq-answer"><p>ReWords is a rewards platform where you earn coins by completing offers, playing games, taking surveys, and watching videos. You can then redeem your coins for real rewards like PayPal cash, gift cards, and game top-ups.</p></div></div>
+        <div class="faq-item" onclick="toggleFaq(this)"><div class="faq-question"><span>How do I earn coins?</span><i class="fas fa-chevron-down"></i></div><div class="faq-answer"><p>There are multiple ways to earn: Complete offers from offerwalls, play game offers and reach milestones, take surveys, watch rewarded ads, check in daily, refer friends, participate in challenges, and complete tasks.</p></div></div>
+        <div class="faq-item" onclick="toggleFaq(this)"><div class="faq-question"><span>What is the coin conversion rate?</span><i class="fas fa-chevron-down"></i></div><div class="faq-answer"><p>10,000 Coins = $1.00 USD. This rate is fixed across the platform.</p></div></div>
+        <div class="faq-item" onclick="toggleFaq(this)"><div class="faq-question"><span>How do I withdraw my earnings?</span><i class="fas fa-chevron-down"></i></div><div class="faq-answer"><p>Go to Wallet or Withdraw page, select your preferred method (PayPal, Crypto, or Mobile Top-Up), enter the amount (minimum 5,000 coins), and submit your request.</p></div></div>
+        <div class="faq-item" onclick="toggleFaq(this)"><div class="faq-question"><span>Why was my offer not credited?</span><i class="fas fa-chevron-down"></i></div><div class="faq-answer"><p>Offers may take up to 24 hours to be credited. If your offer has not been credited after 24 hours, please submit a support ticket with the offer details.</p></div></div>
+        <div class="faq-item" onclick="toggleFaq(this)"><div class="faq-question"><span>How does the referral system work?</span><i class="fas fa-chevron-down"></i></div><div class="faq-answer"><p>Share your unique referral link. You earn 15% of everything your referrals earn. Plus, you both earn bonus coins when they reach milestones.</p></div></div>
+        <div class="faq-item" onclick="toggleFaq(this)"><div class="faq-question"><span>What is the daily streak bonus?</span><i class="fas fa-chevron-down"></i></div><div class="faq-answer"><p>Log in and claim your daily reward every day. The longer your streak, the higher your rewards and earnings multiplier.</p></div></div>
+        <div class="faq-item" onclick="toggleFaq(this)"><div class="faq-question"><span>Is my personal information safe?</span><i class="fas fa-chevron-down"></i></div><div class="faq-answer"><p>Yes. We use industry-standard encryption and security measures. We never sell your personal data.</p></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== TERMS PAGE ========== -->
+  <section id="page-terms" class="page">
+    <div class="page-header"><h1><i class="fas fa-file-contract"></i> Terms of Service</h1></div>
+    <div class="section-container"><div class="legal-content"><h2>Terms of Service</h2><p><strong>Last updated:</strong> January 2025</p><h3>1. Acceptance of Terms</h3><p>By accessing and using ReWords, you agree to be bound by these Terms of Service.</p><h3>2. Eligibility</h3><p>You must be at least 18 years old to use ReWords. You may only create one account per person.</p><h3>3. Account Registration</h3><p>You must provide accurate information during registration. You are responsible for maintaining account security.</p><h3>4. Earning and Rewards</h3><p>Coins are earned by completing offers and activities. The conversion rate is 10,000 Coins = $1.00 USD.</p><h3>5. Withdrawals</h3><p>Minimum withdrawal is 5,000 Coins. Processing time is 1-24 hours for verified accounts.</p><h3>6. Prohibited Activities</h3><p>Multi-accounting, VPN usage, self-referral, chargeback fraud, and bot usage are strictly prohibited.</p><h3>7. Chargebacks</h3><p>If a provider issues a chargeback on an offer, the corresponding coins may be reversed.</p><h3>8. Limitation of Liability</h3><p>ReWords is not liable for any damages arising from the use of the Platform.</p><h3>9. Modifications</h3><p>ReWords reserves the right to modify these terms at any time.</p></div></div>
+  </section>
+
+  <!-- ========== PRIVACY PAGE ========== -->
+  <section id="page-privacy" class="page">
+    <div class="page-header"><h1><i class="fas fa-user-shield"></i> Privacy Policy</h1></div>
+    <div class="section-container"><div class="legal-content"><h2>Privacy Policy</h2><p><strong>Last updated:</strong> January 2025</p><h3>1. Information We Collect</h3><p>We collect account information, device information, IP addresses, usage data, and offer completion data.</p><h3>2. How We Use Your Information</h3><p>We use your information to provide services, process withdrawals, prevent fraud, and improve the platform.</p><h3>3. Data Sharing</h3><p>We share data with offerwall providers for tracking, payment processors for withdrawals. We do not sell personal data.</p><h3>4. Data Security</h3><p>We employ industry-standard encryption and security measures.</p><h3>5. Your Rights</h3><p>You can request data export, correction, or deletion by contacting support.</p></div></div>
+  </section>
+
+  <!-- ========== ANTI-FRAUD PAGE ========== -->
+  <section id="page-anti-fraud" class="page">
+    <div class="page-header"><h1><i class="fas fa-exclamation-triangle"></i> Anti-Fraud & Integrity</h1><p>Our commitment to a fair and secure platform.</p></div>
+    <div class="section-container">
+      <div class="fraud-info-content">
+        <div class="fraud-status-card"><div class="fsc-icon"><i class="fas fa-shield-alt"></i></div><h3>Platform Integrity Status</h3><div class="status-badge active"><i class="fas fa-circle"></i> All Systems Operational</div></div>
+        <div class="fraud-section"><h2><i class="fas fa-eye"></i> What We Monitor</h2><div class="fraud-grid">
+          <div class="fraud-item"><i class="fas fa-globe"></i><h4>IP Tracking</h4><p>Monitor for VPN/proxy usage</p></div>
+          <div class="fraud-item"><i class="fas fa-fingerprint"></i><h4>Device Fingerprinting</h4><p>Detect multiple accounts</p></div>
+          <div class="fraud-item"><i class="fas fa-user-secret"></i><h4>Duplicate Accounts</h4><p>Prevent multi-accounting</p></div>
+          <div class="fraud-item"><i class="fas fa-stopwatch"></i><h4>Velocity Checks</h4><p>Detect abnormally fast completions</p></div>
+          <div class="fraud-item"><i class="fas fa-exchange-alt"></i><h4>Country Mismatch</h4><p>Flag suspicious country changes</p></div>
+          <div class="fraud-item"><i class="fas fa-desktop"></i><h4>Emulator Detection</h4><p>Prevent emulated device abuse</p></div>
+        </div></div>
+        <div class="fraud-section"><h2><i class="fas fa-gavel"></i> Enforcement Actions</h2><p>Accounts found violating our terms may face:</p><ul><li>Warning notification</li><li>Offer completion hold</li><li>Withdrawal restriction</li><li>Account suspension</li><li>Permanent ban with coin forfeiture</li></ul></div>
+        <div class="fraud-section"><h2><i class="fas fa-balance-scale"></i> Fair Use Policy</h2><p>We believe in fair play. If you believe your account was incorrectly flagged, please submit a support ticket.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== ADMIN DASHBOARD ========== -->
+  <section id="page-admin" class="page">
+    <div class="admin-layout">
+      <aside class="admin-sidebar" id="adminSidebar">
+        <div class="admin-sidebar-header"><h3><i class="fas fa-tools"></i> Admin Panel</h3></div>
+        <nav class="admin-nav">
+          <a href="#" class="admin-nav-link active" onclick="showAdminTab('admin-dashboard')"><i class="fas fa-chart-line"></i> Dashboard</a>
+          <a href="#" class="admin-nav-link" onclick="showAdminTab('admin-users')"><i class="fas fa-users"></i> Users</a>
+          <a href="#" class="admin-nav-link" onclick="showAdminTab('admin-offers')"><i class="fas fa-hand-holding-usd"></i> Offers</a>
+          <a href="#" class="admin-nav-link" onclick="showAdminTab('admin-providers')"><i class="fas fa-plug"></i> Providers</a>
+          <a href="#" class="admin-nav-link" onclick="showAdminTab('admin-rewards')"><i class="fas fa-store"></i> Rewards Store</a>
+          <a href="#" class="admin-nav-link" onclick="showAdminTab('admin-orders')"><i class="fas fa-shopping-cart"></i> Orders</a>
+          <a href="#" class="admin-nav-link" onclick="showAdminTab('admin-withdrawals')"><i class="fas fa-money-bill-wave"></i> Withdrawals</a>
+          <a href="#" class="admin-nav-link" onclick="showAdminTab('admin-fraud')"><i class="fas fa-shield-alt"></i> Fraud Center</a>
+          <a href="#" class="admin-nav-link" onclick="showAdminTab('admin-finance')"><i class="fas fa-chart-pie"></i> Finance</a>
+          <a href="#" class="admin-nav-link" onclick="showAdminTab('admin-analytics')"><i class="fas fa-chart-bar"></i> Analytics</a>
+          <a href="#" class="admin-nav-link" onclick="showAdminTab('admin-ads')"><i class="fas fa-ad"></i> Ads</a>
+          <a href="#" class="admin-nav-link" onclick="showAdminTab('admin-campaigns')"><i class="fas fa-bullhorn"></i> Campaigns</a>
+          <a href="#" class="admin-nav-link" onclick="showAdminTab('admin-referrals')"><i class="fas fa-user-friends"></i> Referrals</a>
+          <a href="#" class="admin-nav-link" onclick="showAdminTab('admin-content')"><i class="fas fa-edit"></i> Content</a>
+          <a href="#" class="admin-nav-link" onclick="showAdminTab('admin-support-tickets')"><i class="fas fa-headset"></i> Support</a>
+          <a href="#" class="admin-nav-link" onclick="showAdminTab('admin-settings')"><i class="fas fa-cog"></i> Settings</a>
+          <a href="#" class="admin-nav-link" onclick="showAdminTab('admin-logs')"><i class="fas fa-list-alt"></i> Logs</a>
+          <a href="#" class="admin-nav-link" onclick="showAdminTab('admin-roles')"><i class="fas fa-user-shield"></i> Roles</a>
+        </nav>
+      </aside>
+      <div class="admin-main" id="adminMain">
+        <div class="admin-tab active" id="admin-dashboard">
+          <h2>Dashboard Overview</h2>
+          <div class="admin-stats-grid">
+            <div class="admin-stat-card"><div class="asc-icon"><i class="fas fa-users"></i></div><div class="asc-info"><span class="asc-value" id="admTotalUsers">0</span><span class="asc-label">Total Users</span></div><span class="asc-change positive"><i class="fas fa-arrow-up"></i> +12%</span></div>
+            <div class="admin-stat-card"><div class="asc-icon revenue"><i class="fas fa-dollar-sign"></i></div><div class="asc-info"><span class="asc-value" id="admRevenueToday">$0</span><span class="asc-label">Revenue Today</span></div><span class="asc-change positive"><i class="fas fa-arrow-up"></i> +8%</span></div>
+            <div class="admin-stat-card"><div class="asc-icon pending"><i class="fas fa-clock"></i></div><div class="asc-info"><span class="asc-value" id="admPendingWithdrawals">0</span><span class="asc-label">Pending Withdrawals</span></div></div>
+            <div class="admin-stat-card"><div class="asc-icon fraud"><i class="fas fa-exclamation-triangle"></i></div><div class="asc-info"><span class="asc-value" id="admFraudAlerts">0</span><span class="asc-label">Fraud Alerts</span></div></div>
+            <div class="admin-stat-card"><div class="asc-icon profit"><i class="fas fa-chart-line"></i></div><div class="asc-info"><span class="asc-value" id="admNetProfit">$0</span><span class="asc-label">Net Profit</span></div></div>
+            <div class="admin-stat-card"><div class="asc-icon conversions"><i class="fas fa-check-double"></i></div><div class="asc-info"><span class="asc-value" id="admConversionRate">0%</span><span class="asc-label">Conversion Rate</span></div></div>
+          </div>
+          <div class="admin-charts-grid">
+            <div class="admin-chart-card"><h4>Revenue (7 Days)</h4><canvas id="revenueChart"></canvas></div>
+            <div class="admin-chart-card"><h4>Users (7 Days)</h4><canvas id="usersChart"></canvas></div>
+          </div>
+          <div class="admin-tables-grid">
+            <div class="admin-table-card"><h4>Top Offers</h4><table class="admin-table"><thead><tr><th>Offer</th><th>Conversions</th><th>Revenue</th></tr></thead><tbody id="admTopOffers"></tbody></table></div>
+            <div class="admin-table-card"><h4>Recent Withdrawals</h4><table class="admin-table"><thead><tr><th>User</th><th>Amount</th><th>Status</th></tr></thead><tbody id="admRecentWithdrawals"></tbody></table></div>
+          </div>
+        </div>
+        <div class="admin-tab" id="admin-users" style="display:none;"><div class="admin-tab-header"><h2>User Management</h2><div class="admin-search-bar"><input type="text" id="admUserSearch" placeholder="Search users..." oninput="searchAdminUsers()"><button class="btn btn-primary" onclick="searchAdminUsers()"><i class="fas fa-search"></i></button></div></div><table class="admin-table full-table"><thead><tr><th>User</th><th>Email</th><th>Country</th><th>Coins</th><th>Offers</th><th>Risk</th><th>Status</th><th>Actions</th></tr></thead><tbody id="admUsersTable"></tbody></table></div>
+        <div class="admin-tab" id="admin-offers" style="display:none;"><div class="admin-tab-header"><h2>Offer Management</h2></div><table class="admin-table full-table"><thead><tr><th>Offer</th><th>Provider</th><th>Reward</th><th>Revenue</th><th>Profit</th><th>Country</th><th>Status</th><th>Actions</th></tr></thead><tbody id="admOffersTable"></tbody></table></div>
+        <div class="admin-tab" id="admin-providers" style="display:none;"><h2>Offerwall Providers</h2><div class="admin-providers-grid" id="admProvidersGrid"></div></div>
+        <div class="admin-tab" id="admin-rewards" style="display:none;"><h2>Reward Store Management</h2><table class="admin-table full-table"><thead><tr><th>Reward</th><th>Category</th><th>Cost</th><th>User Price</th><th>Margin</th><th>Stock</th><th>Status</th><th>Actions</th></tr></thead><tbody id="admRewardsTable"></tbody></table></div>
+        <div class="admin-tab" id="admin-orders" style="display:none;"><h2>Order Management</h2><table class="admin-table full-table"><thead><tr><th>Order ID</th><th>User</th><th>Type</th><th>Cost</th><th>Coins</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead><tbody id="admOrdersTable"></tbody></table></div>
+        <div class="admin-tab" id="admin-withdrawals" style="display:none;"><h2>Withdrawal Management</h2><div class="admin-withdrawal-filters"><button class="wf-btn active" onclick="filterAdminWithdrawals('all')">All</button><button class="wf-btn" onclick="filterAdminWithdrawals('pending')">Pending</button><button class="wf-btn" onclick="filterAdminWithdrawals('approved')">Approved</button><button class="wf-btn" onclick="filterAdminWithdrawals('completed')">Completed</button><button class="wf-btn" onclick="filterAdminWithdrawals('rejected')">Rejected</button><button class="wf-btn" onclick="filterAdminWithdrawals('suspicious')">Suspicious</button></div><table class="admin-table full-table"><thead><tr><th>User</th><th>Amount</th><th>Method</th><th>Risk Score</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead><tbody id="admWithdrawalsTable"></tbody></table></div>
+        <div class="admin-tab" id="admin-fraud" style="display:none;"><h2>Fraud Center</h2><div class="admin-fraud-stats"><div class="afs-item"><span class="afs-value" id="admHighRisk">0</span><span>High Risk Users</span></div><div class="afs-item"><span class="afs-value" id="admSharedDevices">0</span><span>Shared Devices</span></div><div class="afs-item"><span class="afs-value" id="admVPN">0</span><span>VPN Detected</span></div><div class="afs-item"><span class="afs-value" id="admMultiAccounts">0</span><span>Multi-Accounts</span></div><div class="afs-item"><span class="afs-value" id="admChargebacks">0</span><span>Chargebacks</span></div></div><table class="admin-table full-table"><thead><tr><th>User</th><th>Flag</th><th>Details</th><th>Risk Score</th><th>Date</th><th>Actions</th></tr></thead><tbody id="admFraudTable"></tbody></table></div>
+        <div class="admin-tab" id="admin-finance" style="display:none;"><h2>Finance Overview</h2><div class="finance-summary-grid"><div class="fin-card"><span class="fin-label">Gross Revenue</span><span class="fin-value" id="admGrossRevenue">$0</span></div><div class="fin-card"><span class="fin-label">User Rewards Paid</span><span class="fin-value" id="admRewardsPaid">$0</span></div><div class="fin-card"><span class="fin-label">Payment Fees</span><span class="fin-value" id="admPaymentFees">$0</span></div><div class="fin-card"><span class="fin-label">Chargebacks</span><span class="fin-value" id="admChargebackAmt">$0</span></div><div class="fin-card"><span class="fin-label">Net Revenue</span><span class="fin-value" id="admNetRevenue">$0</span></div><div class="fin-card highlight"><span class="fin-label">Net Profit</span><span class="fin-value" id="admNetProfitFin">$0</span></div></div><div class="admin-chart-card"><h4>Daily P&L</h4><canvas id="pnlChart"></canvas></div></div>
+        <div class="admin-tab" id="admin-analytics" style="display:none;"><h2>Analytics</h2><div class="analytics-grid"><div class="analytics-card"><h4>DAU</h4><span id="admDAU">0</span></div><div class="analytics-card"><h4>WAU</h4><span id="admWAU">0</span></div><div class="analytics-card"><h4>MAU</h4><span id="admMAU">0</span></div><div class="analytics-card"><h4>Avg Session</h4><span id="admAvgSession">0m</span></div><div class="analytics-card"><h4>Offers Viewed</h4><span id="admOffersViewed">0</span></div><div class="analytics-card"><h4>Offers Completed</h4><span id="admOffersCompleted">0</span></div><div class="analytics-card"><h4>Avg Reward/User</h4><span id="admAvgReward">$0</span></div><div class="analytics-card"><h4>Retention (D7)</h4><span id="admRetention">0%</span></div></div></div>
+        <div class="admin-tab" id="admin-ads" style="display:none;"><h2>Ad Management</h2><div class="admin-ads-grid"><div class="admin-ad-card"><h4>Adsterra Popunder</h4><div class="toggle-row"><span>Enabled</span><label class="toggle"><input type="checkbox" checked><span class="slider"></span></label></div></div><div class="admin-ad-card"><h4>Adsterra Social Bar</h4><div class="toggle-row"><span>Enabled</span><label class="toggle"><input type="checkbox" checked><span class="slider"></span></label></div></div><div class="admin-ad-card"><h4>Monetag MultiTag</h4><div class="toggle-row"><span>Enabled</span><label class="toggle"><input type="checkbox" checked><span class="slider"></span></label></div></div><div class="admin-ad-card"><h4>Native Banner</h4><div class="toggle-row"><span>Enabled</span><label class="toggle"><input type="checkbox" checked><span class="slider"></span></label></div></div></div></div>
+        <div class="admin-tab" id="admin-campaigns" style="display:none;"><h2>Campaign Management</h2><button class="btn btn-primary" onclick="createCampaign()"><i class="fas fa-plus"></i> New Campaign</button><table class="admin-table full-table"><thead><tr><th>Campaign</th><th>Start</th><th>End</th><th>Budget</th><th>Used</th><th>Status</th><th>Actions</th></tr></thead><tbody id="admCampaignsTable"></tbody></table></div>
+        <div class="admin-tab" id="admin-referrals" style="display:none;"><h2>Referral Management</h2><div class="referral-settings-grid"><div class="form-group"><label>Sign-up Bonus</label><input type="number" id="refSignupBonus" value="500"></div><div class="form-group"><label>First-Offer Bonus</label><input type="number" id="refFirstOfferBonus" value="200"></div><div class="form-group"><label>Referrer %</label><input type="number" id="refPercent" value="15"></div><div class="form-group"><label>Max Referrals/User</label><input type="number" id="refMaxReferrals" value="0"></div></div><button class="btn btn-primary" onclick="saveReferralSettings()">Save Settings</button></div>
+        <div class="admin-tab" id="admin-content" style="display:none;"><h2>Content Management</h2><div class="content-sections"><div class="content-card"><h4>Homepage Banners</h4><button class="btn btn-outline">Manage</button></div><div class="content-card"><h4>FAQ</h4><button class="btn btn-outline">Edit</button></div><div class="content-card"><h4>Announcements</h4><button class="btn btn-outline">Manage</button></div></div></div>
+        <div class="admin-tab" id="admin-support-tickets" style="display:none;"><h2>Support Tickets</h2><table class="admin-table full-table"><thead><tr><th>ID</th><th>User</th><th>Category</th><th>Priority</th><th>Subject</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead><tbody id="admTicketsTable"></tbody></table></div>
+        <div class="admin-tab" id="admin-settings" style="display:none;"><h2>System Settings</h2><div class="system-settings-grid"><div class="settings-card"><h4>General</h4><div class="form-group"><label>Site Name</label><input type="text" id="setSiteName" value="ReWords"></div><div class="form-group"><label>Coin Rate (coins per $1)</label><input type="number" id="setCoinRate" value="10000"></div><div class="form-group"><label>Min Withdrawal (coins)</label><input type="number" id="setMinWithdraw" value="5000"></div></div><div class="settings-card"><h4>Fraud Settings</h4><div class="form-group"><label>Max Withdrawals/Day</label><input type="number" id="setMaxWithdrawDay" value="3"></div><div class="form-group"><label>Max Offers/Day</label><input type="number" id="setMaxOffersDay" value="50"></div><div class="form-group"><label>Risk Score Threshold</label><input type="number" id="setRiskThreshold" value="70"></div></div><div class="settings-card"><h4>Referral Settings</h4><div class="form-group"><label>Referrer Bonus %</label><input type="number" id="setRefBonus" value="15"></div><div class="form-group"><label>Signup Bonus</label><input type="number" id="setRefSignupBonus" value="500"></div></div></div><button class="btn btn-primary" onclick="saveAdminSettings()"><i class="fas fa-save"></i> Save All Settings</button></div>
+        <div class="admin-tab" id="admin-logs" style="display:none;"><h2>System Logs</h2><div class="log-filters"><select id="logTypeFilter" onchange="filterLogs()"><option value="all">All Logs</option><option value="user">User Actions</option><option value="admin">Admin Actions</option><option value="auth">Auth Events</option><option value="fraud">Fraud Events</option><option value="api">API Logs</option><option value="balance">Balance Changes</option></select></div><div class="logs-list" id="logsList"></div></div>
+        <div class="admin-tab" id="admin-roles" style="display:none;"><h2>Admin Roles & Permissions</h2><table class="admin-table full-table"><thead><tr><th>Admin</th><th>Email</th><th>Role</th><th>2FA</th><th>Last Login</th><th>Actions</th></tr></thead><tbody id="admRolesTable"></tbody></table></div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ==================== FOOTER ==================== -->
+<footer class="main-footer" id="mainFooter">
+  <div class="footer-inner">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <div class="footer-logo"><div class="logo-icon"><i class="fas fa-coins"></i></div><span class="logo-text">Re<span class="logo-accent">Words</span></span></div>
+        <p>Earn real rewards by completing offers, playing games, and more.</p>
+        <div class="footer-social">
+          <a href="#"><i class="fab fa-twitter"></i></a>
+          <a href="#"><i class="fab fa-discord"></i></a>
+          <a href="#"><i class="fab fa-telegram-plane"></i></a>
+          <a href="#"><i class="fab fa-instagram"></i></a>
+        </div>
+      </div>
+      <div class="footer-col">
+        <h4>Earn</h4>
+        <a href="#" onclick="showPage('offers')">Offerwalls</a>
+        <a href="#" onclick="showPage('games')">Game Offers</a>
+        <a href="#" onclick="showPage('surveys')">Surveys</a>
+        <a href="#" onclick="showPage('watch-ads')">Watch Ads</a>
+        <a href="#" onclick="showPage('daily')">Daily Rewards</a>
+        <a href="#" onclick="showPage('referrals')">Referrals</a>
+      </div>
+      <div class="footer-col">
+        <h4>Rewards</h4>
+        <a href="#" onclick="showPage('rewards-store')">Rewards Store</a>
+        <a href="#" onclick="showPage('topup')">Game Top-Up</a>
+        <a href="#" onclick="showPage('withdraw')">Withdraw</a>
+        <a href="#" onclick="showPage('wallet')">Wallet</a>
+        <a href="#" onclick="showPage('leaderboard')">Leaderboard</a>
+      </div>
+      <div class="footer-col">
+        <h4>Support</h4>
+        <a href="#" onclick="showPage('faq')">FAQ</a>
+        <a href="#" onclick="showPage('support')">Contact Support</a>
+        <a href="#" onclick="showPage('terms')">Terms of Service</a>
+        <a href="#" onclick="showPage('privacy')">Privacy Policy</a>
+        <a href="#" onclick="showPage('anti-fraud')">Anti-Fraud</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>&copy; 2025 ReWords. All rights reserved.</p>
+      <p>10,000 Coins = $1.00 USD</p>
+    </div>
+  </div>
+</footer>
+
+<!-- Monetag Smartlink -->
+<a href="https://www.effectivecpmnetwork.com/k92kfsc3?key=5558f1cfe654ce78931098e005c15fc7" target="_blank" rel="nofollow" style="display:none;">Smartlink</a>
+
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-functions-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="app.js"></script>
 </body>
 </html>

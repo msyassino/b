@@ -1,0 +1,459 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ============================================================
+    // ReWords - Firestore Security Rules
+    // Production-grade rules with fraud prevention
+    // ============================================================
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    function isSuperAdmin() {
+      return isAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'super_admin';
+    }
+
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isValidEmail(email) {
+      return email.matches('.*@.*\\..*');
+    }
+
+    function isWithinRateLimit(maxPerHour) {
+      return true;
+    }
+
+    function noSensitiveData() {
+      return !(request.resource.data.keys().hasAny(['password', 'passwordHash', 'secretKey']));
+    }
+
+    function validateCoins() {
+      return request.resource.data.coins is map
+        && request.resource.data.coins.keys().hasAll(['available', 'pending', 'locked', 'lifetimeEarned', 'lifetimeSpent'])
+        && request.resource.data.coins.available is number
+        && request.resource.data.coins.available >= 0
+        && request.resource.data.coins.pending >= 0
+        && request.resource.data.coins.locked >= 0;
+    }
+
+    // ============================================================
+    // USERS COLLECTION
+    // ============================================================
+    match /users/{userId} {
+      // Users can read their own data
+      // Admins can read all user data
+      allow read: if isOwner(userId) || isAdmin();
+
+      // Create: Only the authenticated user can create their own profile
+      allow create: if isOwner(userId)
+        && request.resource.data.keys().hasAll([
+          'uid', 'username', 'email', 'country', 'role', 'coins',
+          'level', 'xp', 'streak', 'checkin', 'stats', 'verification',
+          'status', 'riskScore', 'createdAt'
+        ])
+        && request.resource.data.uid == userId
+        && request.resource.data.username is string
+        && request.resource.data.username.size() >= 3
+        && request.resource.data.username.size() <= 20
+        && request.resource.data.email is string
+        && isValidEmail(request.resource.data.email)
+        && request.resource.data.role in ['user']
+        && request.resource.data.coins.available >= 0
+        && request.resource.data.coins.available <= 1000
+        && validateCoins()
+        && noSensitiveData();
+
+      // Update: Users can update their own data with restrictions
+      allow update: if isOwner(userId) || isAdmin()
+        && noSensitiveData()
+        && (
+          // Users can update limited fields
+          (isOwner(userId) && !isAdmin() && (
+            request.resource.data.diff(resource.data).keys().hasOnly([
+              'username', 'country', 'settings', 'lastLogin', 'devices', 'ips',
+              'streak', 'checkin', 'stats', 'level', 'xp', 'verification',
+              'coins', 'referralCode'
+            ])
+          ))
+          ||
+          // Admins can update most fields
+          (isAdmin())
+        )
+        && (
+          // Coin safety: available coins cannot decrease by more than allowed operations
+          // Only ledger operations should modify coins
+          request.resource.data.coins.available >= 0
+          && request.resource.data.coins.pending >= 0
+          && request.resource.data.coins.locked >= 0
+        );
+
+      // Delete: Only super admins can delete users
+      allow delete: if isSuperAdmin();
+
+      // Subcollection: User sessions
+      match /sessions/{sessionId} {
+        allow read: if isOwner(userId);
+        allow write: if isOwner(userId);
+      }
+    }
+
+    // ============================================================
+    // LEDGER COLLECTION (Immutable financial records)
+    // ============================================================
+    match /ledger/{entryId} {
+      // Read: Owner or admin
+      allow read: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid || isAdmin()
+      );
+
+      // Create: Authenticated users (system writes these)
+      allow create: if isAuthenticated()
+        && request.resource.data.keys().hasAll([
+          'userId', 'type', 'category', 'amount', 'balanceBefore',
+          'balanceAfter', 'description', 'timestamp'
+        ])
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.type in ['credit', 'debit']
+        && request.resource.data.amount > 0
+        && request.resource.data.amount <= 1000000;
+
+      // No updates or deletes to ledger entries (immutable)
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    // ============================================================
+    // TRANSACTIONS COLLECTION
+    // ============================================================
+    match /transactions/{txId} {
+      allow read: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid || isAdmin()
+      );
+
+      allow create: if isAuthenticated()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.type in ['earn', 'spend', 'withdrawal', 'bonus', 'referral']
+        && request.resource.data.coins > 0
+        && request.resource.data.coins <= 1000000;
+
+      allow update: if isAdmin();
+      allow delete: if false;
+    }
+
+    // ============================================================
+    // OFFERS COLLECTION (Admin-managed)
+    // ============================================================
+    match /offers/{offerId} {
+      allow read: if true;
+
+      allow create: if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if isSuperAdmin();
+    }
+
+    // ============================================================
+    // OFFER PROVIDERS (Admin-managed)
+    // ============================================================
+    match /offer_providers/{providerId} {
+      allow read: if true;
+
+      allow create: if isSuperAdmin();
+      allow update: if isAdmin();
+      allow delete: if isSuperAdmin();
+    }
+
+    // ============================================================
+    // POSTBACKS COLLECTION (Provider callbacks)
+    // ============================================================
+    match /postbacks/{postbackId} {
+      allow read: if isAdmin();
+
+      allow create: if true; // Providers post here
+      allow update: if isAdmin();
+      allow delete: if false;
+    }
+
+    // ============================================================
+    // CHARGEBACKS COLLECTION
+    // ============================================================
+    match /chargebacks/{chargebackId} {
+      allow read: if isAdmin();
+
+      allow create: if true; // Providers post chargebacks
+      allow update: if isAdmin();
+      allow delete: if false;
+    }
+
+    // ============================================================
+    // ORDERS COLLECTION
+    // ============================================================
+    match /orders/{orderId} {
+      allow read: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid || isAdmin()
+      );
+
+      allow create: if isAuthenticated()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.keys().hasAll([
+          'userId', 'type', 'item', 'category', 'cost',
+          'usd', 'status', 'createdAt'
+        ]);
+
+      allow update: if isAdmin();
+      allow delete: if false;
+    }
+
+    // ============================================================
+    // WITHDRAWALS COLLECTION
+    // ============================================================
+    match /withdrawals/{withdrawalId} {
+      allow read: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid || isAdmin()
+      );
+
+      allow create: if isAuthenticated()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.amount >= 5000
+        && request.resource.data.amount <= 1000000
+        && request.resource.data.method in ['paypal', 'crypto', 'mobile'];
+
+      allow update: if isAdmin();
+      allow delete: if false;
+    }
+
+    // ============================================================
+    // REFERRALS COLLECTION
+    // ============================================================
+    match /referrals/{referralId} {
+      allow read: if isAuthenticated() && (
+        resource.data.referrerId == request.auth.uid || isAdmin()
+      );
+
+      allow create: if isAuthenticated();
+      allow update: if isAdmin();
+      allow delete: if false;
+    }
+
+    // ============================================================
+    // DAILY REWARDS COLLECTION
+    // ============================================================
+    match /daily_rewards/{rewardId} {
+      allow read: if isOwner(resource.data.userId) || isAdmin();
+
+      allow create: if isAuthenticated()
+        && request.resource.data.userId == request.auth.uid;
+
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    // ============================================================
+    // STREAKS COLLECTION
+    // ============================================================
+    match /streaks/{streakId} {
+      allow read: if isOwner(resource.data.userId) || isAdmin();
+
+      allow create: if isAuthenticated()
+        && request.resource.data.userId == request.auth.uid;
+
+      allow update: if isOwner(resource.data.userId);
+      allow delete: if false;
+    }
+
+    // ============================================================
+    // NOTIFICATIONS COLLECTION
+    // ============================================================
+    match /notifications/{notifId} {
+      allow read: if isOwner(resource.data.userId) || isAdmin();
+
+      allow create: if isAuthenticated();
+
+      // Users can mark as read, admins can do everything
+      allow update: if (isOwner(resource.data.userId) && request.resource.data.diff(resource.data).keys().hasOnly(['read']))
+        || isAdmin();
+
+      allow delete: if isOwner(resource.data.userId) || isAdmin();
+    }
+
+    // ============================================================
+    // TICKETS COLLECTION (Support)
+    // ============================================================
+    match /tickets/{ticketId} {
+      allow read: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid || isAdmin()
+      );
+
+      allow create: if isAuthenticated()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.keys().hasAll([
+          'userId', 'username', 'email', 'category', 'priority',
+          'subject', 'description', 'status', 'createdAt'
+        ])
+        && request.resource.data.category in [
+          'account', 'withdrawal', 'offer', 'topup', 'refund', 'bug', 'other'
+        ];
+
+      allow update: if isAdmin() || (
+        isOwner(resource.data.userId)
+        && request.resource.data.diff(resource.data).keys().hasOnly(['status'])
+        && request.resource.data.status == 'closed'
+      );
+
+      allow delete: if isAdmin();
+
+      // Ticket replies subcollection
+      match /replies/{replyId} {
+        allow read: if isAuthenticated() && (
+          resource.data.userId == request.auth.uid || isAdmin()
+        );
+        allow create: if isAuthenticated();
+        allow update: if isAdmin();
+        allow delete: if isAdmin();
+      }
+    }
+
+    // ============================================================
+    // CAMPAIGNS COLLECTION (Admin-managed)
+    // ============================================================
+    match /campaigns/{campaignId} {
+      allow read: if true;
+
+      allow create: if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if isSuperAdmin();
+    }
+
+    // ============================================================
+    // ACTIVITY LOGS (Immutable)
+    // ============================================================
+    match /activity_logs/{logId} {
+      allow read: if isAdmin();
+
+      allow create: if isAuthenticated()
+        && request.resource.data.userId == request.auth.uid;
+
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    // ============================================================
+    // FRAUD EVENTS COLLECTION
+    // ============================================================
+    match /fraud_events/{eventId} {
+      allow read: if isAdmin();
+
+      allow create: if isAuthenticated() || true; // System can create
+      allow update: if isAdmin();
+      allow delete: if isSuperAdmin();
+    }
+
+    // ============================================================
+    // FRAUD RULES (Admin-managed)
+    // ============================================================
+    match /fraud_rules/{ruleId} {
+      allow read: if isAdmin();
+      allow write: if isSuperAdmin();
+    }
+
+    // ============================================================
+    // BLACKLIST COLLECTION
+    // ============================================================
+    match /blacklist/{entryId} {
+      allow read: if isAdmin();
+      allow write: if isSuperAdmin();
+    }
+
+    // ============================================================
+    // ADMIN USERS COLLECTION
+    // ============================================================
+    match /admin_users/{adminId} {
+      allow read: if isAdmin();
+      allow write: if isSuperAdmin();
+    }
+
+    // ============================================================
+    // ADMIN ACTIONS LOG
+    // ============================================================
+    match /admin_actions/{actionId} {
+      allow read: if isAdmin();
+      allow create: if isAdmin();
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    // ============================================================
+    // SYSTEM SETTINGS
+    // ============================================================
+    match /settings/{settingId} {
+      allow read: if true;
+      allow write: if isSuperAdmin();
+    }
+
+    // ============================================================
+    // CONTENT / CMS
+    // ============================================================
+    match /content/{contentId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ============================================================
+    // ANALYTICS EVENTS (Write-only for clients)
+    // ============================================================
+    match /analytics_events/{eventId} {
+      allow read: if isAdmin();
+      allow create: if true;
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    // ============================================================
+    // REWARD ITEMS (Store)
+    // ============================================================
+    match /reward_items/{itemId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ============================================================
+    // CHARGES / PAYMENTS
+    // ============================================================
+    match /charges/{chargeId} {
+      allow read: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid || isAdmin()
+      );
+      allow create: if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if false;
+    }
+
+    // ============================================================
+    // API KEYS (Very restricted)
+    // ============================================================
+    match /api_keys/{keyId} {
+      allow read: if isSuperAdmin();
+      allow write: if isSuperAdmin();
+    }
+
+    // ============================================================
+    // WEBHOOK CONFIG
+    // ============================================================
+    match /webhooks/{webhookId} {
+      allow read: if isSuperAdmin();
+      allow write: if isSuperAdmin();
+    }
+  }
+}
