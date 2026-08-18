@@ -16,7 +16,6 @@
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
 </head>
 <body class="admin-body">
-<div id="adDirectLinks" class="hidden"></div>
 
 <!-- ============================================================ -->
 <!-- ADMIN AUTH SCREEN -->
@@ -42,14 +41,14 @@
       <div class="field">
         <label>Email</label>
         <div class="input-wrap">
-          <input type="email" class="input" id="adminEmail" placeholder="admin@example.com" value="" required>
+          <input type="email" class="input" id="adminEmail" placeholder="admin@example.com"  required>
           <span class="i-ico">📧</span>
         </div>
       </div>
       <div class="field">
         <label>Password</label>
         <div class="input-wrap">
-          <input type="password" class="input" id="adminPassword" placeholder="Password" value="" required>
+          <input type="password" class="input" id="adminPassword" placeholder="Password"  required>
           <span class="i-ico">🔑</span>
           <button type="button" class="i-toggle" id="toggleAdminPw">👁️</button>
         </div>
@@ -64,7 +63,7 @@
     <a href="index.html" class="btn btn-ghost btn-block">← Back to site</a>
 
     <div class="text-xs text-muted text-center mt-3">
-      Forgot password? This panel is protected by custom admin claims in Firebase.
+      Admin access is provisioned securely. No default credentials are stored in this page.
     </div>
   </div>
 </div>
@@ -628,111 +627,65 @@
       <section class="admin-page" id="admin-ads">
         <div class="page-subhead">
           <div class="ps-title">📺 Ads & Networks</div>
-          <div class="ps-sub">Ad network scripts, rewarded ad settings and revenue sharing.</div>
+          <div class="ps-sub">Manage trusted ad networks and placements. Provider code is bundled in the application; Firestore stores only enable/disable and routing settings.</div>
         </div>
 
         <div class="grid grid-2 mb-4">
-          <!-- Adsterra Card -->
-          <div class="card">
-            <div class="card-head">
-              <div class="flex items-center gap-2">
-                <div class="avatar-sm" style="background:var(--grad-primary)">🎬</div>
-                <div class="card-title">Adsterra</div>
-              </div>
-              <span class="badge badge-success">Connected</span>
-            </div>
-            <div class="kv-row"><span class="kv-label">Popunder Script</span><span class="kv-value text-xs truncate" style="max-width:200px">Adsterra Popunder (new placement)</span></div>
-            <div class="kv-row"><span class="kv-label">Social Bar Script</span><span class="kv-value text-xs truncate" style="max-width:200px">https://pl30883339.effectivecpmnetwork.com/...</span></div>
-            <div class="kv-row"><span class="kv-label">Native Banner Key</span><span class="kv-value text-xs">NativeBanner_1</span></div>
-            <div class="kv-row"><span class="kv-label">Smartlink URL</span><span class="kv-value text-xs truncate" style="max-width:200px">Smartlink_1</span></div>
+          <div class="card ad-network-card">
+            <div class="card-head"><div class="flex items-center gap-2"><div class="avatar-sm" style="background:var(--grad-primary)">🎬</div><div class="card-title">Adsterra</div></div><span class="badge badge-success">Trusted integration</span></div>
+            <div class="kv-row"><span class="kv-label">468×60</span><span class="kv-value text-xs">c351ac7c1200d215d77a5b0a74a395fe</span></div>
+            <div class="kv-row"><span class="kv-label">Native Banner</span><span class="kv-value text-xs">df7130eb24354334e85ee01b5be086f2</span></div>
+            <div class="kv-row"><span class="kv-label">Popunder</span><span class="kv-value text-xs">2e8e1d21821e52cabb4dca2fb31ae1ed</span></div>
+            <div class="kv-row"><span class="kv-label">Social Bar</span><span class="kv-value text-xs">32aa624c58a1d6ea82421be6e9c8d4b4</span></div>
+            <div class="field mt-3"><label class="cbx"><input type="checkbox" id="adNetworkAdsterra"><span class="cbx-box">✓</span> Enabled</label></div>
           </div>
 
-          <!-- Monetag Card -->
-          <div class="card">
-            <div class="card-head">
-              <div class="flex items-center gap-2">
-                <div class="avatar-sm" style="background:var(--grad-accent)">🎬</div>
-                <div class="card-title">Monetag</div>
-              </div>
-              <span class="badge badge-success">Connected</span>
-            </div>
+          <div class="card ad-network-card">
+            <div class="card-head"><div class="flex items-center gap-2"><div class="avatar-sm" style="background:var(--grad-accent)">🎬</div><div class="card-title">Monetag</div></div><span class="badge badge-success">Trusted integration</span></div>
             <div class="kv-row"><span class="kv-label">MultiTag Zone</span><span class="kv-value">271240</span></div>
-            <div class="kv-row"><span class="kv-label">MultiTag Script</span><span class="kv-value text-xs truncate" style="max-width:200px">https://quge5.com/88/tag.min.js</span></div>
+            <div class="kv-row"><span class="kv-label">Script</span><span class="kv-value text-xs truncate" style="max-width:280px">https://quge5.com/88/tag.min.js</span></div>
+            <div class="kv-row"><span class="kv-label">Direct Link</span><span class="kv-value text-xs truncate" style="max-width:280px">https://omg10.com/4/11605558</span></div>
+            <div class="field mt-3"><label class="cbx"><input type="checkbox" id="adNetworkMonetag"><span class="cbx-box">✓</span> Enabled</label></div>
           </div>
 
-          <!-- Freecash Affiliate Card -->
-          <div class="card">
-            <div class="card-head">
-              <div class="flex items-center gap-2">
-                <div class="avatar-sm" style="background:var(--grad-success)">🎮</div>
-                <div class="card-title">Freecash</div>
-              </div>
-              <span class="badge badge-info">Affiliate</span>
-            </div>
-            <div class="kv-row"><span class="kv-label">Affiliate Link</span><span class="kv-value text-xs">freecash.com/r/34GRD6</span></div>
-            <div class="kv-row"><span class="kv-label">Banner URL</span><span class="kv-value text-xs truncate" style="max-width:200px">cdn.phototourl.com/free/...</span></div>
+          <div class="card ad-network-card">
+            <div class="card-head"><div class="flex items-center gap-2"><div class="avatar-sm" style="background:var(--grad-success)">⛰️</div><div class="card-title">HilltopAds</div></div><span class="badge badge-success">Trusted integration</span></div>
+            <div class="kv-row"><span class="kv-label">Zone</span><span class="kv-value">7333641</span></div>
+            <div class="kv-row"><span class="kv-label">Script</span><span class="kv-value text-xs">infamous-maximum.com</span></div>
+            <div class="field mt-3"><label class="cbx"><input type="checkbox" id="adNetworkHilltop"><span class="cbx-box">✓</span> Enabled</label></div>
           </div>
 
-          <!-- Network Controls -->
-          <div class="card">
-            <div class="card-head"><div class="card-title">🎛️ Network Controls</div></div>
-            <div class="grid grid-2 gap-2">
-              <label class="cbx"><input type="checkbox" id="adEnableAdsterra468" checked><span class="cbx-box">✓</span>Adsterra 468×60</label>
-              <label class="cbx"><input type="checkbox" id="adEnableAdsterraNative" checked><span class="cbx-box">✓</span>Adsterra Native</label>
-              <label class="cbx"><input type="checkbox" id="adEnableAdsterraPopunder" checked><span class="cbx-box">✓</span>Adsterra Popunder</label>
-              <label class="cbx"><input type="checkbox" id="adEnableAdsterraSocial" checked><span class="cbx-box">✓</span>Adsterra SocialBar</label>
-              <label class="cbx"><input type="checkbox" id="adEnableAdsterraSmartlink" checked><span class="cbx-box">✓</span>Adsterra Smartlink</label>
-              <label class="cbx"><input type="checkbox" id="adEnableMonetag" checked><span class="cbx-box">✓</span>Monetag MultiTag</label>
-              <label class="cbx"><input type="checkbox" id="adEnableMonetagDirect" checked><span class="cbx-box">✓</span>Monetag Direct Link</label>
-              <label class="cbx"><input type="checkbox" id="adEnableHilltop" checked><span class="cbx-box">✓</span>HilltopAds</label>
-              <label class="cbx"><input type="checkbox" id="adEnablePopAds"><span class="cbx-box">✓</span>PopAds (reserved)</label>
-            </div>
-            <div class="mt-3"><a href="https://omg10.com/4/11605558" target="_blank" rel="noopener" class="btn btn-ghost btn-sm">🔗 Open Monetag Direct Link</a></div>
-          </div>
-
-          <!-- Rewarded Ads Config -->
-          <div class="card">
-            <div class="card-head"><div class="card-title">⚙️ Rewarded Ads</div></div>
-            <form id="adsConfigForm">
-              <div class="field">
-                <label>Coins per Ad</label>
-                <input type="number" class="input" id="adsCoinsPerAd" value="120">
-              </div>
-              <div class="field">
-                <label>Daily Cap</label>
-                <input type="number" class="input" id="adsDailyCap" value="15">
-              </div>
-              <div class="field">
-                <label>Revenue per 1,000 Ad Views ($)</label>
-                <input type="number" class="input" id="adsECPM" value="2.5" step="0.1">
-              </div>
-              <button type="submit" class="btn btn-accent btn-block">💾 Save Ad Settings</button>
-            </form>
+          <div class="card ad-network-card">
+            <div class="card-head"><div class="flex items-center gap-2"><div class="avatar-sm" style="background:var(--grad-gold)">🧪</div><div class="card-title">PopAds</div></div><span class="badge badge-warning">Ready for future code</span></div>
+            <div class="kv-row"><span class="kv-label">Status</span><span class="kv-value text-xs">Placement reserved — disabled until PopAds code is provided.</span></div>
+            <div class="field mt-3"><label class="cbx"><input type="checkbox" id="adNetworkPopads"><span class="cbx-box">✓</span> Enabled when configured</label></div>
           </div>
         </div>
 
         <div class="card mb-4">
-          <div class="card-head"><div class="card-title">📈 Network Performance</div></div>
-          <div class="chart-wrap-sm"><canvas id="adsNetworkChart"></canvas></div>
+          <div class="card-head"><div class="card-title">🎯 Placements</div><span class="badge badge-info">Trusted scripts only</span></div>
+          <div class="grid grid-3">
+            <label class="cbx"><input type="checkbox" id="adPlacementBanner"><span class="cbx-box">✓</span> 468×60 Banner</label>
+            <label class="cbx"><input type="checkbox" id="adPlacementNative"><span class="cbx-box">✓</span> Native Banner</label>
+            <label class="cbx"><input type="checkbox" id="adPlacementPopunder"><span class="cbx-box">✓</span> Popunder</label>
+            <label class="cbx"><input type="checkbox" id="adPlacementSocialbar"><span class="cbx-box">✓</span> Social Bar</label>
+            <label class="cbx"><input type="checkbox" id="adPlacementSmartlink"><span class="cbx-box">✓</span> Smartlink</label>
+            <div class="field mt-3"><label class="cbx"><input type="checkbox" id="adPlacementMonetagDirect"><span class="cbx-box">✓</span> Monetag Direct Link placement</label></div>
+          </div>
+          <div class="field mt-3"><label>Test mode</label><select class="select" id="adTestMode"><option value="production">Production</option><option value="test">Test</option></select></div>
+          <button class="btn btn-accent" id="saveAdsCenterBtn">💾 Save Ad Center</button>
         </div>
 
         <div class="card">
-          <div class="card-head"><div class="card-title">🧪 Postback Simulator</div></div>
-          <p class="text-sm text-muted mb-3">Simulate a provider postback to credit a user (for testing the offerwall pipeline).</p>
-          <form id="postbackForm" class="grid grid-3 gap-2">
-            <div class="field">
-              <label>User UID</label>
-              <input type="text" class="input" id="pbUid" placeholder="User UID">
+          <div class="card-head"><div class="card-title">⚙️ Rewarded Ads Policy</div></div>
+          <form id="adsConfigForm">
+            <div class="grid grid-3 gap-3">
+              <div class="field"><label>Coins per Ad</label><input type="number" min="0" class="input" id="adsCoinsPerAd" value="120"></div>
+              <div class="field"><label>Daily Cap</label><input type="number" min="0" class="input" id="adsDailyCap" value="15"></div>
+              <div class="field"><label>Revenue / 1,000 Views ($)</label><input type="number" min="0" class="input" id="adsECPM" value="2.5" step="0.1"></div>
             </div>
-            <div class="field">
-              <label>Offer ID</label>
-              <input type="text" class="input" id="pbOfferId" placeholder="Offer ID">
-            </div>
-            <div class="field">
-              <label>Coins</label>
-              <input type="number" class="input" id="pbCoins" placeholder="500">
-            </div>
-            <button type="submit" class="btn btn-accent btn-block col-span-3">🚀 Simulate Postback</button>
+            <p class="text-xs text-muted mb-3">The site will not award coins from a client countdown. Rewarded coins require a verified provider callback/backend implementation.</p>
+            <button type="submit" class="btn btn-accent">💾 Save Rewarded Ad Settings</button>
           </form>
         </div>
       </section>
@@ -1416,7 +1369,6 @@
               <div class="field">
                 <label>Role</label>
                 <select class="select" id="grantAdminRole">
-                  <option value="super">Admin</option>
                   <option value="super">Super Admin</option>
                   <option value="finance">Finance Admin</option>
                   <option value="support">Support Agent</option>
@@ -1426,7 +1378,7 @@
             </form>
             <div class="callout mt-3">
               <span class="co-ico">💡</span>
-              <div class="text-xs">Note: Firestore security rules rely on the admin custom claim. Granting via this panel requires the account to already hold the admin claim (set once by the bootstrap script).</div>
+              <div class="text-xs">Admin roles are controlled by Firebase authorization rules/backend. This panel does not self-bootstrap admin access.</div>
             </div>
           </div>
 
