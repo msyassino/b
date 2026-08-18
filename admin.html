@@ -1,1031 +1,1606 @@
 <!DOCTYPE html>
-<html lang="en" dir="ltr" data-theme="dark">
+<html lang="en" data-theme="dark">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Rewords Admin Panel</title>
-  <meta name="robots" content="noindex, nofollow">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rewords — Admin Panel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
 
-  <!-- Fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700&family=Tajawal:wght@400;500;700;800;900&family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
-
-  <!-- Firebase compat SDK -->
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-
-  <!-- Shared design system -->
-  <link rel="stylesheet" href="style.css">
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
 </head>
 <body class="admin-body">
 
-  <!-- ============================================================
-       ADMIN GATE (login)
-  ============================================================ -->
-  <div class="admin-gate" id="adminGate">
-    <div class="gate-card">
-      <div class="gate-logo">🛡️</div>
-      <h1 class="gate-title">Rewords Admin</h1>
-      <p class="gate-sub">Restricted area — administrators only.</p>
+<!-- ============================================================ -->
+<!-- ADMIN AUTH SCREEN -->
+<!-- ============================================================ -->
+<div class="admin-auth" id="adminAuth">
+  <div class="aa-card">
+    <div class="aa-logo">
+      <div class="aa-badge">🛡️</div>
+      <div class="font-black text-xl">Rewords Admin</div>
+      <div class="text-sm text-muted">Restricted area — administrators only.</div>
+      <span class="aa-role-tag">Admin Access Required</span>
+    </div>
 
-      <div class="alert alert-warning mb-3 hidden" id="gateError">
-        <span class="a-ico">⚠️</span>
-        <div class="a-body"><div class="a-title">Access denied</div><span id="gateErrorMsg"></span></div>
+    <div id="adminAccessDenied" class="alert alert-danger hidden">
+      <span class="a-ico">⚠️</span>
+      <div class="a-body">
+        <div class="a-title">Access denied</div>
+        <div class="text-sm">This account does not have admin privileges.</div>
       </div>
+    </div>
 
-      <form id="gateForm">
-        <div class="field">
-          <label for="gateEmail">Email</label>
-          <input type="email" class="input" id="gateEmail" autocomplete="username" placeholder="admin@rewords.app">
+    <form id="adminLoginForm">
+      <div class="field">
+        <label>Email</label>
+        <div class="input-wrap">
+          <input type="email" class="input" id="adminEmail" placeholder="admin@example.com" value="kenven@admin.com" required>
+          <span class="i-ico">📧</span>
         </div>
-        <div class="field">
-          <label for="gatePassword">Password</label>
-          <input type="password" class="input" id="gatePassword" autocomplete="current-password" placeholder="••••••••">
-        </div>
-        <button type="submit" class="btn btn-accent btn-lg btn-block" id="gateLoginBtn">
-          <span>🔐</span> <span>Sign in</span>
-        </button>
-      </form>
-
-      <div class="gate-links">
-        <a href="index.html" class="gate-link">← Back to site</a>
-        <button class="gate-link link-btn" id="gateResetBtn">Forgot password?</button>
       </div>
-      <div class="text-xs text-muted text-center mt-4">This panel is protected by custom admin claims in Firebase.</div>
+      <div class="field">
+        <label>Password</label>
+        <div class="input-wrap">
+          <input type="password" class="input" id="adminPassword" placeholder="Password" value="admin123" required>
+          <span class="i-ico">🔑</span>
+          <button type="button" class="i-toggle" id="toggleAdminPw">👁️</button>
+        </div>
+      </div>
+      <button type="submit" class="btn btn-accent btn-lg btn-block" id="adminLoginBtn">
+        🔐 Sign in
+      </button>
+    </form>
+
+    <div class="divider"><span>or</span></div>
+
+    <a href="index.html" class="btn btn-ghost btn-block">← Back to site</a>
+
+    <div class="text-xs text-muted text-center mt-3">
+      Forgot password? This panel is protected by custom admin claims in Firebase.
     </div>
   </div>
+</div>
 
-  <!-- ============================================================
-       ADMIN LAYOUT
-  ============================================================ -->
-  <div class="admin-shell hidden" id="adminShell">
+<!-- ============================================================ -->
+<!-- ADMIN SHELL (shown after login) -->
+<!-- ============================================================ -->
+<div class="admin-shell" id="adminShell" style="display:none">
 
-    <!-- ===================== SIDEBAR ===================== -->
-    <aside class="admin-sidebar" id="adminSidebar">
-      <div class="as-brand">
-        <span class="as-logo">🛡️</span>
-        <span class="as-name">Rewords<span class="as-admin">Admin</span></span>
-      </div>
-
-      <nav class="as-nav" id="adminNav">
-        <div class="as-group">Overview</div>
-        <button class="as-item active" data-sec="dashboard"><span class="asi-ico">📊</span><span class="asi-label">Dashboard</span></button>
-        <button class="as-item" data-sec="analytics"><span class="asi-ico">📈</span><span class="asi-label">Analytics</span></button>
-        <button class="as-item" data-sec="finance"><span class="asi-ico">💰</span><span class="asi-label">Finance</span></button>
-
-        <div class="as-group">Users</div>
-        <button class="as-item" data-sec="users"><span class="asi-ico">👥</span><span class="asi-label">Users</span></button>
-        <button class="as-item" data-sec="fraud"><span class="asi-ico">🛡️</span><span class="asi-label">Fraud Center</span></button>
-        <button class="as-item" data-sec="referral"><span class="asi-ico">🔗</span><span class="asi-label">Referral System</span></button>
-
-        <div class="as-group">Monetization</div>
-        <button class="as-item" data-sec="offers"><span class="asi-ico">🎯</span><span class="asi-label">Offers</span></button>
-        <button class="as-item" data-sec="providers"><span class="asi-ico">🏢</span><span class="asi-label">Providers</span></button>
-        <button class="as-item" data-sec="games"><span class="asi-ico">🎮</span><span class="asi-label">Games</span></button>
-        <button class="as-item" data-sec="surveys"><span class="asi-ico">📋</span><span class="asi-label">Surveys</span></button>
-        <button class="as-item" data-sec="ads"><span class="asi-ico">📺</span><span class="asi-label">Ads & Networks</span></button>
-        <button class="as-item" data-sec="campaigns"><span class="asi-ico">🎟️</span><span class="asi-label">Campaigns</span></button>
-
-        <div class="as-group">Store & Payments</div>
-        <button class="as-item" data-sec="rewards"><span class="asi-ico">🎁</span><span class="asi-label">Rewards Store</span></button>
-        <button class="as-item" data-sec="orders"><span class="asi-ico">📦</span><span class="asi-label">Orders</span></button>
-        <button class="as-item" data-sec="withdrawals"><span class="asi-ico">💵</span><span class="asi-label">Withdrawals</span></button>
-
-        <div class="as-group">Content</div>
-        <button class="as-item" data-sec="content"><span class="asi-ico">📰</span><span class="asi-label">Content</span></button>
-        <button class="as-item" data-sec="support"><span class="asi-ico">🎧</span><span class="asi-label">Support</span></button>
-
-        <div class="as-group">System</div>
-        <button class="as-item" data-sec="system"><span class="asi-ico">⚙️</span><span class="asi-label">System Settings</span></button>
-        <button class="as-item" data-sec="security"><span class="asi-ico">🔐</span><span class="asi-label">Security</span></button>
-        <button class="as-item" data-sec="roles"><span class="asi-ico">🪪</span><span class="asi-label">Admin Roles</span></button>
-        <button class="as-item" data-sec="logs"><span class="asi-ico">📜</span><span class="asi-label">Audit Logs</span></button>
-      </nav>
-
-      <div class="as-footer">
-        <button class="as-item" id="sidebarCollapse"><span class="asi-ico">◀</span><span class="asi-label">Collapse</span></button>
-      </div>
-    </aside>
-
-    <!-- ===================== MAIN ===================== -->
-    <div class="admin-main">
-      <header class="admin-topbar">
-        <button class="hamburger" id="topbarHamburger" aria-label="Menu">☰</button>
-        <div class="at-search">
-          <span class="ats-ico">🔍</span>
-          <input type="text" class="input" id="globalSearch" placeholder="Search users, orders, tickets...">
+  <!-- ============ SIDEBAR ============ -->
+  <aside class="admin-side" id="adminSide">
+    <div class="side-head">
+      <div class="flex items-center gap-2">
+        <div class="avatar-sm" style="background:var(--grad-primary)">🛡️</div>
+        <div class="txt">
+          <div class="font-black">Rewords Admin</div>
         </div>
-        <div class="at-actions">
-          <button class="at-btn" id="adminThemeBtn" title="Toggle theme">🌙</button>
-          <button class="at-btn" id="adminLangBtn" title="Language">EN</button>
-          <button class="at-btn" id="adminRefreshBtn" title="Refresh data">🔄</button>
-          <div class="at-admin" id="adminBadge">
-            <span class="at-ava" id="adminAva">A</span>
-            <div class="at-admin-info">
-              <div class="at-admin-name" id="adminName">Admin</div>
-              <div class="at-admin-role" id="adminRole">Super Admin</div>
-            </div>
-          </div>
-          <button class="btn btn-danger btn-sm" id="adminLogoutBtn">🚪 <span>Logout</span></button>
-        </div>
-      </header>
+      </div>
+    </div>
 
-      <!-- Quick stats strip -->
-      <div class="quick-strip" id="quickStrip">
-        <div class="qs-item"><div class="qs-v" id="qsUsers">0</div><div class="qs-l">Users</div></div>
-        <div class="qs-item"><div class="qs-v" id="qsOffers">0</div><div class="qs-l">Active Offers</div></div>
-        <div class="qs-item"><div class="qs-v" id="qsWithdrawals">0</div><div class="qs-l">Pending Withdrawals</div></div>
-        <div class="qs-item"><div class="qs-v" id="qsOrders">0</div><div class="qs-l">Pending Orders</div></div>
-        <div class="qs-item"><div class="qs-v" id="qsTickets">0</div><div class="qs-l">Open Tickets</div></div>
-        <div class="qs-item"><div class="qs-v" id="qsFraud">0</div><div class="qs-l">Flagged Users</div></div>
-        <div class="qs-item"><div class="qs-v grad-text-accent" id="qsRevenue">$0</div><div class="qs-l">Gross Revenue</div></div>
-        <div class="qs-item"><div class="qs-v grad-text-success" id="qsProfit">$0</div><div class="qs-l">Net Profit</div></div>
+    <div class="side-search">
+      <input type="search" class="input" id="sideSearchInput" placeholder="Quick search...">
+      <span class="ss-ico">🔍</span>
+    </div>
+
+    <!-- Overview Group -->
+    <div class="side-group">
+      <div class="side-group-label">Overview</div>
+      <a class="side-link active" data-admin-nav="dashboard">
+        <span class="s-ico">📊</span><span class="s-label">Dashboard</span>
+      </a>
+      <a class="side-link" data-admin-nav="analytics">
+        <span class="s-ico">📈</span><span class="s-label">Analytics</span>
+      </a>
+      <a class="side-link" data-admin-nav="finance">
+        <span class="s-ico">💰</span><span class="s-label">Finance</span>
+      </a>
+    </div>
+
+    <!-- Users Group -->
+    <div class="side-group">
+      <div class="side-group-label">Users</div>
+      <a class="side-link" data-admin-nav="users">
+        <span class="s-ico">👥</span><span class="s-label">Users</span>
+        <span class="s-badge" id="sideBadgeUsers">0</span>
+      </a>
+      <a class="side-link" data-admin-nav="fraud">
+        <span class="s-ico">🛡️</span><span class="s-label">Fraud Center</span>
+        <span class="s-badge" id="sideBadgeFraud">0</span>
+      </a>
+      <a class="side-link" data-admin-nav="referral">
+        <span class="s-ico">🔗</span><span class="s-label">Referral System</span>
+      </a>
+    </div>
+
+    <!-- Monetization Group -->
+    <div class="side-group">
+      <div class="side-group-label">Monetization</div>
+      <a class="side-link" data-admin-nav="offers">
+        <span class="s-ico">🎯</span><span class="s-label">Offers</span>
+      </a>
+      <a class="side-link" data-admin-nav="providers">
+        <span class="s-ico">🏢</span><span class="s-label">Providers</span>
+      </a>
+      <a class="side-link" data-admin-nav="games">
+        <span class="s-ico">🎮</span><span class="s-label">Games</span>
+      </a>
+      <a class="side-link" data-admin-nav="surveys">
+        <span class="s-ico">📋</span><span class="s-label">Surveys</span>
+      </a>
+      <a class="side-link" data-admin-nav="ads">
+        <span class="s-ico">📺</span><span class="s-label">Ads & Networks</span>
+      </a>
+      <a class="side-link" data-admin-nav="campaigns">
+        <span class="s-ico">🎟️</span><span class="s-label">Campaigns</span>
+      </a>
+    </div>
+
+    <!-- Store & Payments Group -->
+    <div class="side-group">
+      <div class="side-group-label">Store & Payments</div>
+      <a class="side-link" data-admin-nav="rewards">
+        <span class="s-ico">🎁</span><span class="s-label">Rewards Store</span>
+      </a>
+      <a class="side-link" data-admin-nav="orders">
+        <span class="s-ico">📦</span><span class="s-label">Orders</span>
+        <span class="s-badge" id="sideBadgeOrders">0</span>
+      </a>
+      <a class="side-link" data-admin-nav="withdrawals">
+        <span class="s-ico">💵</span><span class="s-label">Withdrawals</span>
+        <span class="s-badge" id="sideBadgeWithdrawals">0</span>
+      </a>
+    </div>
+
+    <!-- Content Group -->
+    <div class="side-group">
+      <div class="side-group-label">Content</div>
+      <a class="side-link" data-admin-nav="content">
+        <span class="s-ico">📰</span><span class="s-label">Content</span>
+      </a>
+      <a class="side-link" data-admin-nav="support">
+        <span class="s-ico">🎧</span><span class="s-label">Support</span>
+        <span class="s-badge" id="sideBadgeTickets">0</span>
+      </a>
+    </div>
+
+    <!-- System Group -->
+    <div class="side-group">
+      <div class="side-group-label">System</div>
+      <a class="side-link" data-admin-nav="settings">
+        <span class="s-ico">⚙️</span><span class="s-label">System Settings</span>
+      </a>
+      <a class="side-link" data-admin-nav="security">
+        <span class="s-ico">🔐</span><span class="s-label">Security</span>
+      </a>
+      <a class="side-link" data-admin-nav="roles">
+        <span class="s-ico">🪪</span><span class="s-label">Admin Roles</span>
+      </a>
+      <a class="side-link" data-admin-nav="logs">
+        <span class="s-ico">📜</span><span class="s-label">Audit Logs</span>
+      </a>
+    </div>
+
+    <div class="side-foot">
+      <button class="btn btn-ghost btn-sm btn-block" id="collapseSideBtn">◀ Collapse</button>
+    </div>
+  </aside>
+
+  <!-- ============ MAIN CONTENT ============ -->
+  <div class="admin-main">
+
+    <!-- TOPBAR -->
+    <div class="admin-topbar">
+      <button class="btn-icon btn-ghost" id="openSideBtn">☰</button>
+      <div class="search-box flex-1" style="max-width:420px">
+        <input type="search" class="input" id="topbarSearch" placeholder="Search anything...">
+        <span class="s-ico">🔍</span>
+      </div>
+      <div class="flex items-center gap-2 ms-auto">
+        <button class="btn-icon btn-ghost" id="adminThemeToggle">🌙</button>
+        <select class="select" id="adminLangSelect" style="max-width:90px">
+          <option value="en">EN</option>
+          <option value="ar">AR</option>
+        </select>
+        <button class="btn-icon btn-ghost" id="adminRefreshBtn" title="Refresh data">🔄</button>
+        <div class="flex items-center gap-2" id="adminProfile">
+          <div class="avatar-sm">A</div>
+          <div class="text-sm">
+            <div class="font-bold">Admin</div>
+            <div class="text-xs text-muted">Super Admin</div>
+          </div>
+        </div>
+        <button class="btn btn-danger btn-sm" id="adminLogoutBtn">🚪 Logout</button>
+      </div>
+    </div>
+
+    <!-- QUICK STATS BAR -->
+    <div class="admin-content" id="adminContentWrap">
+      <div class="quick-stats" id="quickStatsBar">
+        <div class="qs"><div class="qs-label">Users</div><div class="qs-value" id="qsUsers">0</div></div>
+        <div class="qs"><div class="qs-label">Active Offers</div><div class="qs-value" id="qsOffers">0</div></div>
+        <div class="qs"><div class="qs-label">Pending Withdrawals</div><div class="qs-value" id="qsWithdrawals">0</div></div>
+        <div class="qs"><div class="qs-label">Pending Orders</div><div class="qs-value" id="qsOrders">0</div></div>
+        <div class="qs"><div class="qs-label">Open Tickets</div><div class="qs-value" id="qsTickets">0</div></div>
+        <div class="qs"><div class="qs-label">Flagged Users</div><div class="qs-value" id="qsFlagged">0</div></div>
+        <div class="qs grad" style="background:var(--grad-accent)"><div class="qs-label">Gross Revenue</div><div class="qs-value" id="qsRevenue">$0</div></div>
+        <div class="qs grad" style="background:var(--grad-success)"><div class="qs-label">Net Profit</div><div class="qs-value" id="qsProfit">$0</div></div>
       </div>
 
-      <!-- ===================== CONTENT ===================== -->
-      <main class="admin-content" id="adminContent">
+      <!-- ============================================================ -->
+      <!-- PAGE: DASHBOARD -->
+      <!-- ============================================================ -->
+      <section class="admin-page active" id="admin-dashboard">
+        <div class="page-subhead">
+          <div class="ps-title">📊 Dashboard</div>
+          <div class="ps-sub">Business overview at a glance.</div>
+        </div>
 
-        <!-- ============ SECTION: DASHBOARD ============ -->
-        <section class="admin-page active" id="sec-dashboard">
-          <div class="ap-head">
-            <h2 class="ap-title">📊 Dashboard</h2>
-            <div class="ap-sub">Business overview at a glance.</div>
+        <!-- KPI Glass Cards -->
+        <div class="grid grid-4 mb-4">
+          <div class="kpi-glass">
+            <div class="kg-label">👥 Total Users</div>
+            <div class="kg-value" id="kpiTotalUsers">0</div>
+            <div class="kg-sub"><span class="trend-up" id="kpiUsersTrend">+0%</span> vs last week</div>
           </div>
-
-          <div class="grid grid-4 mb-4">
-            <div class="card stat-card reveal">
-              <span class="stat-ico bg-primary">👥</span>
-              <div class="stat-value" id="dashUsers">0</div>
-              <div class="stat-label">Total Users</div>
-            </div>
-            <div class="card stat-card reveal">
-              <span class="stat-ico bg-success">🪙</span>
-              <div class="stat-value" id="dashCoins">0</div>
-              <div class="stat-label">Coins Awarded</div>
-            </div>
-            <div class="card stat-card reveal">
-              <span class="stat-ico bg-warning">💵</span>
-              <div class="stat-value" id="dashWithdrawn">$0</div>
-              <div class="stat-label">Total Withdrawn</div>
-            </div>
-            <div class="card stat-card reveal">
-              <span class="stat-ico bg-info">📈</span>
-              <div class="stat-value" id="dashGrowth">+0%</div>
-              <div class="stat-label">User Growth (7d)</div>
-            </div>
+          <div class="kpi-glass">
+            <div class="kg-label">🪙 Coins Awarded</div>
+            <div class="kg-value" id="kpiCoins">0</div>
+            <div class="kg-sub">Lifetime total</div>
           </div>
-
-          <div class="grid grid-2 mb-4">
-            <div class="card">
-              <div class="card-head"><h3 class="font-black text-md">📈 Revenue Overview</h3></div>
-              <div class="chart-box"><canvas id="chartRevenue" height="240"></canvas></div>
-            </div>
-            <div class="card">
-              <div class="card-head"><h3 class="font-black text-md">👥 User Acquisition</h3></div>
-              <div class="chart-box"><canvas id="chartUsers" height="240"></canvas></div>
-            </div>
+          <div class="kpi-glass">
+            <div class="kg-label">💵 Total Withdrawn</div>
+            <div class="kg-value" id="kpiWithdrawn">$0</div>
+            <div class="kg-sub">All time</div>
           </div>
-
-          <div class="grid grid-2 mb-4">
-            <div class="card">
-              <div class="card-head">
-                <h3 class="font-black text-md">🎯 Top Offers</h3>
-                <button class="btn btn-ghost btn-sm" data-sec-link="offers">View all →</button>
-              </div>
-              <div class="table-wrap" id="dashTopOffers"></div>
-            </div>
-            <div class="card">
-              <div class="card-head">
-                <h3 class="font-black text-md">🔔 Recent Activity</h3>
-              </div>
-              <div class="flex flex-col gap-2" id="dashActivity"></div>
-            </div>
+          <div class="kpi-glass">
+            <div class="kg-label">📈 User Growth (7d)</div>
+            <div class="kg-value" id="kpiGrowth">+0%</div>
+            <div class="kg-sub">Last 7 days</div>
           </div>
+        </div>
 
-          <div class="grid grid-3 mb-4">
-            <div class="card">
-              <div class="card-head"><h3 class="font-black text-md">🎁 Rewards Sold</h3></div>
-              <div class="chart-box"><canvas id="chartRewards" height="200"></canvas></div>
-            </div>
-            <div class="card">
-              <div class="card-head"><h3 class="font-black text-md">💵 Payout Methods</h3></div>
-              <div class="chart-box"><canvas id="chartPayouts" height="200"></canvas></div>
-            </div>
-            <div class="card">
-              <div class="card-head"><h3 class="font-black text-md">🛡️ Fraud Breakdown</h3></div>
-              <div class="chart-box"><canvas id="chartFraud" height="200"></canvas></div>
-            </div>
-          </div>
-
-          <div class="card mb-4">
+        <!-- Charts Row -->
+        <div class="grid grid-2 mb-4">
+          <div class="card">
             <div class="card-head">
-              <h3 class="font-black text-md">📋 Pending Reviews</h3>
+              <div class="card-title">📈 Revenue Overview</div>
+              <div class="flex gap-2">
+                <button class="chip active" data-revenue-range="7">7d</button>
+                <button class="chip" data-revenue-range="30">30d</button>
+                <button class="chip" data-revenue-range="90">90d</button>
+              </div>
             </div>
-            <div class="table-wrap" id="dashPending"></div>
-          </div>
-        </section>
-
-        <!-- ============ SECTION: ANALYTICS ============ -->
-        <section class="admin-page" id="sec-analytics">
-          <div class="ap-head">
-            <h2 class="ap-title">📈 Analytics</h2>
-            <div class="ap-sub">Deep-dive into traffic, earnings and conversion.</div>
-          </div>
-
-          <div class="toolbar mb-4">
-            <div class="filter-row" id="analyticsRange">
-              <button class="filter-chip active" data-range="7d">7 Days</button>
-              <button class="filter-chip" data-range="30d">30 Days</button>
-              <button class="filter-chip" data-range="90d">90 Days</button>
-              <button class="filter-chip" data-range="12m">12 Months</button>
+            <div class="chart-wrap">
+              <canvas id="revenueChart"></canvas>
+              <div class="chart-empty" id="revenueChartEmpty">No revenue data yet</div>
             </div>
           </div>
-
-          <div class="grid grid-4 mb-4">
-            <div class="card stat-card reveal"><span class="stat-ico bg-info">👁️</span><div class="stat-value" id="anVisits">0</div><div class="stat-label">Visits</div></div>
-            <div class="card stat-card reveal"><span class="stat-ico bg-primary">🆕</span><div class="stat-value" id="anSignups">0</div><div class="stat-label">New Signups</div></div>
-            <div class="card stat-card reveal"><span class="stat-ico bg-accent">🎯</span><div class="stat-value" id="anConv">0%</div><div class="stat-label">Conversion</div></div>
-            <div class="card stat-card reveal"><span class="stat-ico bg-success">⏱️</span><div class="stat-value" id="anAvgTime">0m</div><div class="stat-label">Avg. Session</div></div>
-          </div>
-
-          <div class="grid grid-2 mb-4">
-            <div class="card">
-              <div class="card-head"><h3 class="font-black text-md">🌍 Traffic by Country</h3></div>
-              <div class="table-wrap" id="anCountries"></div>
-            </div>
-            <div class="card">
-              <div class="card-head"><h3 class="font-black text-md">📱 Traffic by Device</h3></div>
-              <div class="table-wrap" id="anDevices"></div>
-            </div>
-          </div>
-
-          <div class="grid grid-2 mb-4">
-            <div class="card">
-              <div class="card-head"><h3 class="font-black text-md">📺 Ad Impressions vs Earnings</h3></div>
-              <div class="chart-box"><canvas id="chartAds" height="220"></canvas></div>
-            </div>
-            <div class="card">
-              <div class="card-head"><h3 class="font-black text-md">🪙 Coin Economy</h3></div>
-              <div class="chart-box"><canvas id="chartCoins" height="220"></canvas></div>
-            </div>
-          </div>
-
-          <div class="card mb-4">
+          <div class="card">
             <div class="card-head">
-              <h3 class="font-black text-md">🗺️ Funnel Analysis</h3>
+              <div class="card-title">👥 User Acquisition</div>
             </div>
-            <div class="funnel" id="anFunnel">
-              <div class="funnel-step" style="--w:100%;"><div class="fs-label">Visitors</div><div class="fs-value" id="funnelVisits">0</div></div>
-              <div class="funnel-step" style="--w:70%;"><div class="fs-label">Signups</div><div class="fs-value" id="funnelSignups">0</div></div>
-              <div class="funnel-step" style="--w:45%;"><div class="fs-label">First Earn</div><div class="fs-value" id="funnelFirst">0</div></div>
-              <div class="funnel-step" style="--w:28%;"><div class="fs-label">Depositors</div><div class="fs-value" id="funnelDeposits">0</div></div>
-              <div class="funnel-step" style="--w:15%;"><div class="fs-label">Withdrawers</div><div class="fs-value" id="funnelWithdraw">0</div></div>
+            <div class="chart-wrap">
+              <canvas id="usersChart"></canvas>
+              <div class="chart-empty" id="usersChartEmpty">No user data yet</div>
             </div>
           </div>
-        </section>
+        </div>
 
-        <!-- ============ SECTION: FINANCE ============ -->
-        <section class="admin-page" id="sec-finance">
-          <div class="ap-head">
-            <h2 class="ap-title">💰 Finance & P&amp;L</h2>
-            <div class="ap-sub">Profit = Revenue − User Rewards − Payment Costs − Fraud Reserve.</div>
-          </div>
-
-          <div class="grid grid-4 mb-4">
-            <div class="card stat-card reveal"><span class="stat-ico bg-success">📥</span><div class="stat-value" id="finRevenue">$0</div><div class="stat-label">Total Revenue</div></div>
-            <div class="card stat-card reveal"><span class="stat-ico bg-warning">🪙</span><div class="stat-value" id="finRewards">$0</div><div class="stat-label">User Rewards</div></div>
-            <div class="card stat-card reveal"><span class="stat-ico bg-info">🏦</span><div class="stat-value" id="finPaymentCost">$0</div><div class="stat-label">Payment Costs</div></div>
-            <div class="card stat-card reveal"><span class="stat-ico bg-danger">🛡️</span><div class="stat-value" id="finFraudReserve">$0</div><div class="stat-label">Fraud Reserve</div></div>
-          </div>
-
-          <div class="grid grid-2 mb-4">
-            <div class="card stat-card grad-border reveal">
-              <span class="stat-ico bg-primary">📊</span>
-              <div class="stat-value grad-text-accent" id="finNetProfit">$0</div>
-              <div class="stat-label">Net Profit</div>
-            </div>
-            <div class="card stat-card reveal">
-              <span class="stat-ico bg-accent">📈</span>
-              <div class="stat-value" id="finMargin">0%</div>
-              <div class="stat-label">Net Margin</div>
-            </div>
-          </div>
-
-          <div class="grid grid-2 mb-4">
-            <div class="card">
-              <div class="card-head"><h3 class="font-black text-md">💰 Profit &amp; Loss Over Time</h3></div>
-              <div class="chart-box"><canvas id="chartPnL" height="240"></canvas></div>
-            </div>
-            <div class="card">
-              <div class="card-head"><h3 class="font-black text-md">🧾 Revenue by Source</h3></div>
-              <div class="chart-box"><canvas id="chartSource" height="240"></canvas></div>
-            </div>
-          </div>
-
-          <div class="card mb-4">
+        <!-- Middle Row -->
+        <div class="grid grid-3 mb-4">
+          <div class="card">
             <div class="card-head">
-              <h3 class="font-black text-md">📒 Ledger (Last 100)</h3>
-              <div class="toolbar-inline">
-                <select class="select" id="financeTypeFilter">
-                  <option value="all">All Types</option>
-                  <option value="offer">Offers</option>
-                  <option value="game">Games</option>
-                  <option value="survey">Surveys</option>
-                  <option value="ad">Ads</option>
-                  <option value="withdrawal">Withdrawals</option>
-                  <option value="topup">Top-Ups</option>
-                  <option value="reward">Rewards</option>
-                </select>
+              <div class="card-title">🎯 Top Offers</div>
+              <button class="btn btn-ghost btn-sm" data-admin-nav="offers">View all →</button>
+            </div>
+            <div id="dashTopOffers"></div>
+          </div>
+          <div class="card">
+            <div class="card-head">
+              <div class="card-title">🔔 Recent Activity</div>
+            </div>
+            <div class="activity-feed" id="dashRecentActivity"></div>
+          </div>
+          <div class="card">
+            <div class="card-head">
+              <div class="card-title">🎁 Rewards Sold</div>
+            </div>
+            <div id="dashRewardsSold"></div>
+          </div>
+        </div>
+
+        <!-- Bottom Row -->
+        <div class="grid grid-3">
+          <div class="card">
+            <div class="card-head"><div class="card-title">💵 Payout Methods</div></div>
+            <div id="dashPayoutMethods"></div>
+          </div>
+          <div class="card">
+            <div class="card-head"><div class="card-title">🛡️ Fraud Breakdown</div></div>
+            <div id="dashFraudBreakdown"></div>
+          </div>
+          <div class="card">
+            <div class="card-head"><div class="card-title">📋 Pending Reviews</div></div>
+            <div id="dashPendingReviews"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================ -->
+      <!-- PAGE: ANALYTICS -->
+      <!-- ============================================================ -->
+      <section class="admin-page" id="admin-analytics">
+        <div class="page-subhead">
+          <div class="ps-title">📈 Analytics</div>
+          <div class="ps-sub">Deep-dive into traffic, earnings and conversion.</div>
+        </div>
+
+        <div class="tabs mb-3" id="analyticsRangeTabs">
+          <button class="tab active" data-analytics-range="7">7 Days</button>
+          <button class="tab" data-analytics-range="30">30 Days</button>
+          <button class="tab" data-analytics-range="90">90 Days</button>
+          <button class="tab" data-analytics-range="365">12 Months</button>
+        </div>
+
+        <div class="grid grid-4 mb-4">
+          <div class="kpi-glass"><div class="kg-label">👁️ Visits</div><div class="kg-value" id="anVisits">0</div></div>
+          <div class="kpi-glass"><div class="kg-label">🆕 New Signups</div><div class="kg-value" id="anSignups">0</div></div>
+          <div class="kpi-glass"><div class="kg-label">🎯 Conversion</div><div class="kg-value" id="anConversion">0%</div></div>
+          <div class="kpi-glass"><div class="kg-label">⏱️ Avg. Session</div><div class="kg-value" id="anSession">0m</div></div>
+        </div>
+
+        <div class="grid grid-2 mb-4">
+          <div class="card">
+            <div class="card-head"><div class="card-title">🌍 Traffic by Country</div></div>
+            <div id="analyticsCountries"></div>
+          </div>
+          <div class="card">
+            <div class="card-head"><div class="card-title">📱 Traffic by Device</div></div>
+            <div id="analyticsDevices"></div>
+          </div>
+        </div>
+
+        <div class="grid grid-2">
+          <div class="card">
+            <div class="card-head"><div class="card-title">📺 Ad Impressions vs Earnings</div></div>
+            <div class="chart-wrap-sm"><canvas id="adsChart"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-head"><div class="card-title">🪙 Coin Economy</div></div>
+            <div id="analyticsCoinEconomy"></div>
+          </div>
+        </div>
+
+        <div class="card mt-4">
+          <div class="card-head"><div class="card-title">🗺️ Funnel Analysis</div></div>
+          <div class="stepper" id="analyticsFunnel">
+            <div class="step done">
+              <div class="st-dot">✓</div>
+              <div class="st-label">Visitors<br><b id="funnelVisitors">0</b></div>
+            </div>
+            <div class="step done">
+              <div class="st-dot">✓</div>
+              <div class="st-label">Signups<br><b id="funnelSignups">0</b></div>
+            </div>
+            <div class="step done">
+              <div class="st-dot">✓</div>
+              <div class="st-label">First Earn<br><b id="funnelEarners">0</b></div>
+            </div>
+            <div class="step done">
+              <div class="st-dot">✓</div>
+              <div class="st-label">Depositors<br><b id="funnelDepositors">0</b></div>
+            </div>
+            <div class="step done">
+              <div class="st-dot">✓</div>
+              <div class="st-label">Withdrawers<br><b id="funnelWithdrawers">0</b></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================ -->
+      <!-- PAGE: FINANCE -->
+      <!-- ============================================================ -->
+      <section class="admin-page" id="admin-finance">
+        <div class="page-subhead">
+          <div class="ps-title">💰 Finance & P&L</div>
+          <div class="ps-sub">Profit = Revenue − User Rewards − Payment Costs − Fraud Reserve.</div>
+        </div>
+
+        <div class="grid grid-3 mb-4">
+          <div class="kpi-glass"><div class="kg-label">📥 Total Revenue</div><div class="kg-value" id="finRevenue">$0</div></div>
+          <div class="kpi-glass"><div class="kg-label">🪙 User Rewards</div><div class="kg-value" id="finRewards">$0</div></div>
+          <div class="kpi-glass"><div class="kg-label">🏦 Payment Costs</div><div class="kg-value" id="finPayments">$0</div></div>
+        </div>
+
+        <div class="grid grid-3 mb-4">
+          <div class="kpi-glass"><div class="kg-label">🛡️ Fraud Reserve</div><div class="kg-value" id="finReserve">$0</div></div>
+          <div class="kpi-glass"><div class="kg-label">📊 Net Profit</div><div class="kg-value text-success" id="finProfit">$0</div></div>
+          <div class="kpi-glass"><div class="kg-label">📈 Net Margin</div><div class="kg-value" id="finMargin">0%</div></div>
+        </div>
+
+        <div class="card mb-4">
+          <div class="card-head"><div class="card-title">💰 Profit & Loss Over Time</div></div>
+          <div class="chart-wrap"><canvas id="financeChart"></canvas></div>
+        </div>
+
+        <div class="grid grid-2">
+          <div class="card">
+            <div class="card-head"><div class="card-title">🧾 Revenue by Source</div></div>
+            <div id="financeRevenueSources"></div>
+          </div>
+          <div class="card">
+            <div class="card-head"><div class="card-title">📒 Ledger (Last 100)</div></div>
+            <div class="tabs mb-2" id="ledgerFilterTabs">
+              <button class="tab active" data-ledger-filter="all">All Types</button>
+              <button class="tab" data-ledger-filter="offer">Offers</button>
+              <button class="tab" data-ledger-filter="game">Games</button>
+              <button class="tab" data-ledger-filter="survey">Surveys</button>
+              <button class="tab" data-ledger-filter="ad">Ads</button>
+              <button class="tab" data-ledger-filter="withdrawal">Withdrawals</button>
+              <button class="tab" data-ledger-filter="topup">Top-Ups</button>
+              <button class="tab" data-ledger-filter="reward">Rewards</button>
+            </div>
+            <div class="log-stream" id="financeLedgerList"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================ -->
+      <!-- PAGE: USERS -->
+      <!-- ============================================================ -->
+      <section class="admin-page" id="admin-users">
+        <div class="page-subhead">
+          <div class="ps-title">👥 Users</div>
+          <div class="ps-sub">Manage user accounts, balances and verification.</div>
+        </div>
+
+        <div class="toolbar">
+          <div class="search-box flex-1">
+            <input type="search" class="input" id="usersSearch" placeholder="Search by name, email or UID...">
+            <span class="s-ico">🔍</span>
+          </div>
+        </div>
+
+        <div class="filter-row">
+          <button class="filter-chip active" data-user-status="all">All Status</button>
+          <button class="filter-chip" data-user-status="active">Active</button>
+          <button class="filter-chip" data-user-status="pending">Pending</button>
+          <button class="filter-chip" data-user-status="restricted">Restricted</button>
+          <button class="filter-chip" data-user-status="banned">Banned</button>
+          <button class="filter-chip" data-user-status="deleted">Deleted</button>
+        </div>
+
+        <div class="head-tools mb-3">
+          <select class="select" id="usersSort" style="max-width:180px">
+            <option value="newest">Newest</option>
+            <option value="earned">Most Earned</option>
+            <option value="referrals">Most Referrals</option>
+            <option value="risk">Highest Risk</option>
+          </select>
+          <button class="btn btn-ghost btn-sm" id="exportUsersBtn">⬇️ Export CSV</button>
+        </div>
+
+        <div class="grid grid-4 mb-3">
+          <div class="qs"><div class="qs-label">✅ Active</div><div class="qs-value" id="usActive">0</div></div>
+          <div class="qs"><div class="qs-label">⏳ Pending</div><div class="qs-value" id="usPending">0</div></div>
+          <div class="qs"><div class="qs-label">⛔ Banned</div><div class="qs-value" id="usBanned">0</div></div>
+          <div class="qs"><div class="qs-label">🚩 Flagged</div><div class="qs-value" id="usFlagged">0</div></div>
+        </div>
+
+        <div class="table-wrap">
+          <table class="table datatable" id="usersTable">
+            <thead>
+              <tr>
+                <th>User</th>
+                <th>Email</th>
+                <th>Coins</th>
+                <th>Withdrawn</th>
+                <th>Status</th>
+                <th>Risk</th>
+                <th>Country</th>
+                <th>Joined</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="usersTableBody"></tbody>
+          </table>
+        </div>
+
+        <div class="pagination mt-3" id="usersPagination"></div>
+      </section>
+
+      <!-- ============================================================ -->
+      <!-- PAGE: OFFERS -->
+      <!-- ============================================================ -->
+      <section class="admin-page" id="admin-offers">
+        <div class="page-subhead">
+          <div class="ps-title">🎯 Offers</div>
+          <div class="ps-sub">Create and manage offerwall offers with milestones.</div>
+        </div>
+
+        <div class="toolbar">
+          <div class="search-box flex-1">
+            <input type="search" class="input" id="offersSearch" placeholder="Search offers...">
+            <span class="s-ico">🔍</span>
+          </div>
+          <select class="select" id="offersProviderFilter" style="max-width:180px">
+            <option value="all">All Providers</option>
+          </select>
+          <button class="btn btn-accent" id="createOfferBtn">＋ New Offer</button>
+        </div>
+
+        <div class="table-wrap">
+          <table class="table datatable" id="offersTable">
+            <thead>
+              <tr>
+                <th>Offer</th>
+                <th>Provider</th>
+                <th>Category</th>
+                <th>Payout</th>
+                <th>Difficulty</th>
+                <th>Active</th>
+                <th>Conversions</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="offersTableBody"></tbody>
+          </table>
+        </div>
+
+        <div class="pagination mt-3" id="offersPagination"></div>
+      </section>
+
+      <!-- ============================================================ -->
+      <!-- PAGE: PROVIDERS -->
+      <!-- ============================================================ -->
+      <section class="admin-page" id="admin-providers">
+        <div class="page-subhead">
+          <div class="ps-title">🏢 Providers</div>
+          <div class="ps-sub">Offerwall and survey provider networks.</div>
+        </div>
+
+        <div class="flex justify-between items-center mb-3">
+          <h3 class="font-bold">All Providers</h3>
+          <button class="btn btn-accent" id="createProviderBtn">＋ New Provider</button>
+        </div>
+
+        <div class="grid grid-2" id="providersGrid"></div>
+
+        <div class="card mt-4">
+          <div class="card-head"><div class="card-title">📊 Provider Performance</div></div>
+          <div class="chart-wrap-sm"><canvas id="providersChart"></canvas></div>
+        </div>
+      </section>
+
+      <!-- ============================================================ -->
+      <!-- PAGE: GAMES -->
+      <!-- ============================================================ -->
+      <section class="admin-page" id="admin-games">
+        <div class="page-subhead">
+          <div class="ps-title">🎮 Games</div>
+          <div class="ps-sub">Game offers with install & milestone rewards.</div>
+        </div>
+
+        <div class="toolbar">
+          <div class="search-box flex-1">
+            <input type="search" class="input" id="gamesSearch" placeholder="Search games...">
+            <span class="s-ico">🔍</span>
+          </div>
+          <button class="btn btn-accent" id="createGameBtn">＋ New Game</button>
+        </div>
+
+        <div class="grid grid-3" id="gamesGrid"></div>
+        <div class="pagination mt-3" id="gamesPagination"></div>
+      </section>
+
+      <!-- ============================================================ -->
+      <!-- PAGE: SURVEYS -->
+      <!-- ============================================================ -->
+      <section class="admin-page" id="admin-surveys">
+        <div class="page-subhead">
+          <div class="ps-title">📋 Surveys</div>
+          <div class="ps-sub">Manage survey providers and slots.</div>
+        </div>
+
+        <div class="toolbar">
+          <div class="search-box flex-1">
+            <input type="search" class="input" id="surveysSearch" placeholder="Search surveys...">
+            <span class="s-ico">🔍</span>
+          </div>
+          <button class="btn btn-accent" id="createSurveyBtn">＋ New Survey</button>
+        </div>
+
+        <div class="grid grid-3" id="surveysGrid"></div>
+      </section>
+
+      <!-- ============================================================ -->
+      <!-- PAGE: ADS & NETWORKS -->
+      <!-- ============================================================ -->
+      <section class="admin-page" id="admin-ads">
+        <div class="page-subhead">
+          <div class="ps-title">📺 Ads & Networks</div>
+          <div class="ps-sub">Ad network scripts, rewarded ad settings and revenue sharing.</div>
+        </div>
+
+        <div class="grid grid-2 mb-4">
+          <!-- Adsterra Card -->
+          <div class="card">
+            <div class="card-head">
+              <div class="flex items-center gap-2">
+                <div class="avatar-sm" style="background:var(--grad-primary)">🎬</div>
+                <div class="card-title">Adsterra</div>
               </div>
+              <span class="badge badge-success">Connected</span>
             </div>
-            <div class="table-wrap" id="finLedger"></div>
-          </div>
-        </section>
-
-        <!-- ============ SECTION: USERS ============ -->
-        <section class="admin-page" id="sec-users">
-          <div class="ap-head">
-            <h2 class="ap-title">👥 Users</h2>
-            <div class="ap-sub">Manage user accounts, balances and verification.</div>
+            <div class="kv-row"><span class="kv-label">Popunder Script</span><span class="kv-value text-xs truncate" style="max-width:200px">https://pl30883338.effectivecpmnetwork.com/...</span></div>
+            <div class="kv-row"><span class="kv-label">Social Bar Script</span><span class="kv-value text-xs truncate" style="max-width:200px">https://pl30883339.effectivecpmnetwork.com/...</span></div>
+            <div class="kv-row"><span class="kv-label">Native Banner Key</span><span class="kv-value text-xs">f4263ddbfe2b4cb1e4ebdad01fc57d37</span></div>
+            <div class="kv-row"><span class="kv-label">Smartlink URL</span><span class="kv-value text-xs truncate" style="max-width:200px">effectivecpmnetwork.com/k92kfsc3</span></div>
           </div>
 
-          <div class="toolbar mb-4">
-            <div class="at-search" style="flex:1;">
-              <span class="ats-ico">🔍</span>
-              <input type="text" class="input" id="usersSearch" placeholder="Search by name, email, UID, referral code...">
-            </div>
-            <select class="select" id="usersStatusFilter">
-              <option value="all">All Status</option>
-              <option value="active">Active</option>
-              <option value="pending">Pending</option>
-              <option value="restricted">Restricted</option>
-              <option value="banned">Banned</option>
-              <option value="deleted">Deleted</option>
-            </select>
-            <select class="select" id="usersSort">
-              <option value="createdAt">Newest</option>
-              <option value="lifetimeEarned">Most Earned</option>
-              <option value="referralCount">Most Referrals</option>
-            </select>
-            <button class="btn btn-primary" id="exportUsersBtn">⬇️ Export CSV</button>
-          </div>
-
-          <div class="grid grid-4 mb-4">
-            <div class="card stat-card reveal"><span class="stat-ico bg-success">✅</span><div class="stat-value" id="usrActive">0</div><div class="stat-label">Active</div></div>
-            <div class="card stat-card reveal"><span class="stat-ico bg-warning">⏳</span><div class="stat-value" id="usrPending">0</div><div class="stat-label">Pending</div></div>
-            <div class="card stat-card reveal"><span class="stat-ico bg-danger">⛔</span><div class="stat-value" id="usrBanned">0</div><div class="stat-label">Banned</div></div>
-            <div class="card stat-card reveal"><span class="stat-ico bg-info">🚩</span><div class="stat-value" id="usrFlagged">0</div><div class="stat-label">Flagged</div></div>
-          </div>
-
+          <!-- Monetag Card -->
           <div class="card">
-            <div class="table-wrap" id="usersTable"></div>
-            <div class="pagination" id="usersPagination">
-              <button class="page-btn" id="usersPrev" disabled>«</button>
-              <button class="page-btn active" id="usersPageInfo">1</button>
-              <button class="page-btn" id="usersNext" disabled>»</button>
-            </div>
-          </div>
-        </section>
-
-        <!-- ============ SECTION: OFFERS ============ -->
-        <section class="admin-page" id="sec-offers">
-          <div class="ap-head">
-            <h2 class="ap-title">🎯 Offers</h2>
-            <div class="ap-sub">Create and manage offerwall offers with milestones.</div>
-          </div>
-
-          <div class="toolbar mb-4">
-            <div class="at-search" style="flex:1;">
-              <span class="ats-ico">🔍</span>
-              <input type="text" class="input" id="offersSearch" placeholder="Search offers...">
-            </div>
-            <select class="select" id="offersProviderFilter">
-              <option value="all">All Providers</option>
-            </select>
-            <button class="btn btn-accent" id="addOfferBtn">＋ New Offer</button>
-          </div>
-
-          <div class="card">
-            <div class="table-wrap" id="offersTable"></div>
-            <div class="pagination" id="offersPagination">
-              <button class="page-btn" id="offersPrev" disabled>«</button>
-              <button class="page-btn active" id="offersPageInfo">1</button>
-              <button class="page-btn" id="offersNext" disabled>»</button>
-            </div>
-          </div>
-        </section>
-
-        <!-- ============ SECTION: PROVIDERS ============ -->
-        <section class="admin-page" id="sec-providers">
-          <div class="ap-head">
-            <h2 class="ap-title">🏢 Providers</h2>
-            <div class="ap-sub">Offerwall and survey provider networks.</div>
-          </div>
-
-          <div class="toolbar mb-4">
-            <button class="btn btn-accent" id="addProviderBtn">＋ New Provider</button>
-          </div>
-
-          <div class="grid grid-3 mb-4" id="providerCards"></div>
-
-          <div class="card">
-            <div class="card-head"><h3 class="font-black text-md">📊 Provider Performance</h3></div>
-            <div class="table-wrap" id="providersTable"></div>
-          </div>
-        </section>
-
-        <!-- ============ SECTION: GAMES ============ -->
-        <section class="admin-page" id="sec-games">
-          <div class="ap-head">
-            <h2 class="ap-title">🎮 Games</h2>
-            <div class="ap-sub">Game offers with install &amp; milestone rewards.</div>
-          </div>
-
-          <div class="toolbar mb-4">
-            <div class="at-search" style="flex:1;">
-              <span class="ats-ico">🔍</span>
-              <input type="text" class="input" id="gamesSearch" placeholder="Search games...">
-            </div>
-            <button class="btn btn-accent" id="addGameBtn">＋ New Game</button>
-          </div>
-
-          <div class="card">
-            <div class="table-wrap" id="gamesTable"></div>
-            <div class="pagination" id="gamesPagination">
-              <button class="page-btn" id="gamesPrev" disabled>«</button>
-              <button class="page-btn active" id="gamesPageInfo">1</button>
-              <button class="page-btn" id="gamesNext" disabled>»</button>
-            </div>
-          </div>
-        </section>
-
-        <!-- ============ SECTION: SURVEYS ============ -->
-        <section class="admin-page" id="sec-surveys">
-          <div class="ap-head">
-            <h2 class="ap-title">📋 Surveys</h2>
-            <div class="ap-sub">Manage survey providers and slots.</div>
-          </div>
-
-          <div class="toolbar mb-4">
-            <div class="at-search" style="flex:1;">
-              <span class="ats-ico">🔍</span>
-              <input type="text" class="input" id="surveysSearch" placeholder="Search surveys...">
-            </div>
-            <button class="btn btn-accent" id="addSurveyBtn">＋ New Survey</button>
-          </div>
-
-          <div class="card">
-            <div class="table-wrap" id="surveysTable"></div>
-          </div>
-        </section>
-
-        <!-- ============ SECTION: ADS ============ -->
-        <section class="admin-page" id="sec-ads">
-          <div class="ap-head">
-            <h2 class="ap-title">📺 Ads &amp; Networks</h2>
-            <div class="ap-sub">Ad network scripts, rewarded ad settings and revenue sharing.</div>
-          </div>
-
-          <div class="grid grid-2 mb-4">
-            <div class="card">
-              <div class="card-head"><h3 class="font-black text-md">🎬 Adsterra</h3><span class="badge badge-success">Connected</span></div>
-              <div class="field"><label>Popunder Script</label><textarea class="textarea code-area" id="adAdsterraPopunder" rows="3">https://pl30883338.effectivecpmnetwork.com/f2/a0/3c/f2a03c3e517e5b8b30ca73eac42e76ce.js</textarea></div>
-              <div class="field"><label>Social Bar Script</label><textarea class="textarea code-area" id="adAdsterraSocial" rows="3">https://pl30883339.effectivecpmnetwork.com/4e/ac/77/4eac77d9d06816802aaaabe459e4ee83.js</textarea></div>
-              <div class="field"><label>Native Banner Key</label><input type="text" class="input" id="adAdsterraNative" value="f4263ddbfe2b4cb1e4ebdad01fc57d37"></div>
-              <div class="field"><label>Smartlink URL</label><input type="text" class="input" id="adAdsterraSmartlink" value="https://www.effectivecpmnetwork.com/k92kfsc3?key=5558f1cfe654ce78931098e005c15fc7"></div>
-            </div>
-            <div class="card">
-              <div class="card-head"><h3 class="font-black text-md">🎬 Monetag</h3><span class="badge badge-success">Connected</span></div>
-              <div class="field"><label>MultiTag Zone</label><input type="text" class="input" id="adMonetagZone" value="270698"></div>
-              <div class="field"><label>MultiTag Script</label><textarea class="textarea code-area" id="adMonetagScript" rows="3">https://quge5.com/88/tag.min.js</textarea></div>
-            </div>
-          </div>
-
-          <div class="grid grid-2 mb-4">
-            <div class="card">
-              <div class="card-head"><h3 class="font-black text-md">🎮 Freecash</h3><span class="badge badge-info">Affiliate</span></div>
-              <div class="field"><label>Affiliate Link</label><input type="text" class="input" id="adFreecashLink" value="https://freecash.com/r/34GRD6"></div>
-              <div class="field"><label>Banner URL</label><input type="text" class="input" id="adFreecashBanner" value="https://cdn.phototourl.com/free/2026-08-17-d1178f26-4ff4-4f4d-aad0-8b528e531e10.png"></div>
-            </div>
-            <div class="card">
-              <div class="card-head"><h3 class="font-black text-md">⚙️ Rewarded Ads</h3></div>
-              <div class="field"><label>Coins per Ad</label><input type="number" class="input" id="adRewardCoins" value="120"></div>
-              <div class="field"><label>Daily Cap</label><input type="number" class="input" id="adDailyCap" value="15"></div>
-              <div class="field"><label>Revenue per 1,000 Ad Views ($)</label><input type="number" class="input" id="adRpm" value="6.00"></div>
-            </div>
-          </div>
-
-          <div class="card mb-4">
-            <div class="card-head"><h3 class="font-black text-md">📈 Network Performance</h3></div>
-            <div class="table-wrap" id="adsTable"></div>
-          </div>
-
-          <div class="card">
-            <div class="card-head"><h3 class="font-black text-md">🧪 Postback Simulator</h3></div>
-            <p class="text-sm text-muted mb-3">Simulate a provider postback to credit a user (for testing the offerwall pipeline).</p>
-            <div class="grid grid-3 mb-3">
-              <div class="field"><label>User UID</label><input type="text" class="input" id="pbUid" placeholder="user UID"></div>
-              <div class="field"><label>Offer ID</label><input type="text" class="input" id="pbOfferId" placeholder="offer ID"></div>
-              <div class="field"><label>Coins</label><input type="number" class="input" id="pbCoins" placeholder="0"></div>
-            </div>
-            <button class="btn btn-primary" id="pbSimulateBtn">🚀 Simulate Postback</button>
-          </div>
-        </section>
-
-        <!-- ============ SECTION: CAMPAIGNS ============ -->
-        <section class="admin-page" id="sec-campaigns">
-          <div class="ap-head">
-            <h2 class="ap-title">🎟️ Campaigns</h2>
-            <div class="ap-sub">Promo codes, events and ad campaigns.</div>
-          </div>
-
-          <div class="tabs mb-4" id="campaignTabs">
-            <button class="tab active" data-camp="promos">Promo Codes</button>
-            <button class="tab" data-camp="events">Events</button>
-            <button class="tab" data-camp="posts">Blog Posts</button>
-          </div>
-
-          <div class="toolbar mb-4">
-            <button class="btn btn-accent" id="addCampaignBtn">＋ New</button>
-          </div>
-
-          <div class="card">
-            <div class="table-wrap" id="campaignsTable"></div>
-          </div>
-        </section>
-
-        <!-- ============ SECTION: REWARDS STORE ============ -->
-        <section class="admin-page" id="sec-rewards">
-          <div class="ap-head">
-            <h2 class="ap-title">🎁 Rewards Store</h2>
-            <div class="ap-sub">Manage the rewards catalog, denominations and stock.</div>
-          </div>
-
-          <div class="toolbar mb-4">
-            <div class="at-search" style="flex:1;">
-              <span class="ats-ico">🔍</span>
-              <input type="text" class="input" id="rewardsSearch" placeholder="Search rewards...">
-            </div>
-            <select class="select" id="rewardsCategoryFilter">
-              <option value="all">All Categories</option>
-              <option value="mobile">Mobile Top-Up</option>
-              <option value="game">Game Top-Up</option>
-              <option value="giftcard">Gift Cards</option>
-              <option value="crypto">Crypto</option>
-              <option value="paypal">PayPal</option>
-              <option value="cash">Cash</option>
-            </select>
-            <button class="btn btn-accent" id="addRewardBtn">＋ New Reward</button>
-          </div>
-
-          <div class="grid grid-3 mb-4" id="rewardsSummary"></div>
-
-          <div class="card">
-            <div class="table-wrap" id="rewardsTable"></div>
-          </div>
-        </section>
-
-        <!-- ============ SECTION: ORDERS ============ -->
-        <section class="admin-page" id="sec-orders">
-          <div class="ap-head">
-            <h2 class="ap-title">📦 Orders</h2>
-            <div class="ap-sub">Reward redemptions and game top-up orders.</div>
-          </div>
-
-          <div class="toolbar mb-4">
-            <select class="select" id="ordersStatusFilter">
-              <option value="all">All Status</option>
-              <option value="pending">Pending</option>
-              <option value="processing">Processing</option>
-              <option value="completed">Completed</option>
-              <option value="cancelled">Cancelled</option>
-              <option value="refunded">Refunded</option>
-            </select>
-            <select class="select" id="ordersTypeFilter">
-              <option value="all">All Types</option>
-              <option value="reward">Rewards</option>
-              <option value="topup">Top-Up</option>
-            </select>
-            <button class="btn btn-primary" id="exportOrdersBtn">⬇️ Export CSV</button>
-          </div>
-
-          <div class="grid grid-4 mb-4">
-            <div class="card stat-card reveal"><span class="stat-ico bg-warning">⏳</span><div class="stat-value" id="ordPending">0</div><div class="stat-label">Pending</div></div>
-            <div class="card stat-card reveal"><span class="stat-ico bg-success">✅</span><div class="stat-value" id="ordCompleted">0</div><div class="stat-label">Completed</div></div>
-            <div class="card stat-card reveal"><span class="stat-ico bg-danger">↩️</span><div class="stat-value" id="ordRefunded">0</div><div class="stat-label">Refunded</div></div>
-            <div class="card stat-card reveal"><span class="stat-ico bg-info">💵</span><div class="stat-value" id="ordValue">$0</div><div class="stat-label">Order Value</div></div>
-          </div>
-
-          <div class="card">
-            <div class="table-wrap" id="ordersTable"></div>
-            <div class="pagination" id="ordersPagination">
-              <button class="page-btn" id="ordersPrev" disabled>«</button>
-              <button class="page-btn active" id="ordersPageInfo">1</button>
-              <button class="page-btn" id="ordersNext" disabled>»</button>
-            </div>
-          </div>
-        </section>
-
-        <!-- ============ SECTION: WITHDRAWALS ============ -->
-        <section class="admin-page" id="sec-withdrawals">
-          <div class="ap-head">
-            <h2 class="ap-title">💵 Withdrawals</h2>
-            <div class="ap-sub">Review, approve or reject payout requests.</div>
-          </div>
-
-          <div class="toolbar mb-4">
-            <select class="select" id="wdStatusFilter">
-              <option value="all">All Status</option>
-              <option value="pending">Pending</option>
-              <option value="approved">Approved</option>
-              <option value="processing">Processing</option>
-              <option value="paid">Paid</option>
-              <option value="rejected">Rejected</option>
-              <option value="chargeback">Chargeback</option>
-            </select>
-            <select class="select" id="wdMethodFilter">
-              <option value="all">All Methods</option>
-              <option value="PayPal">PayPal</option>
-              <option value="Bank Transfer">Bank</option>
-              <option value="Crypto">Crypto</option>
-              <option value="Gift Card">Gift Card</option>
-            </select>
-            <button class="btn btn-primary" id="exportWdBtn">⬇️ Export CSV</button>
-          </div>
-
-          <div class="grid grid-4 mb-4">
-            <div class="card stat-card reveal"><span class="stat-ico bg-warning">⏳</span><div class="stat-value" id="wdPendingCount">0</div><div class="stat-label">Pending</div></div>
-            <div class="card stat-card reveal"><span class="stat-ico bg-success">✅</span><div class="stat-value" id="wdApprovedCount">0</div><div class="stat-label">Approved</div></div>
-            <div class="card stat-card reveal"><span class="stat-ico bg-primary">💸</span><div class="stat-value" id="wdTotalPaid">$0</div><div class="stat-label">Total Paid</div></div>
-            <div class="card stat-card reveal"><span class="stat-ico bg-danger">↩️</span><div class="stat-value" id="wdChargebacks">0</div><div class="stat-label">Chargebacks</div></div>
-          </div>
-
-          <div class="card">
-            <div class="table-wrap" id="withdrawalsTable"></div>
-            <div class="pagination" id="wdPagination">
-              <button class="page-btn" id="wdPrev" disabled>«</button>
-              <button class="page-btn active" id="wdPageInfo">1</button>
-              <button class="page-btn" id="wdNext" disabled>»</button>
-            </div>
-          </div>
-        </section>
-
-        <!-- ============ SECTION: FRAUD CENTER ============ -->
-        <section class="admin-page" id="sec-fraud">
-          <div class="ap-head">
-            <h2 class="ap-title">🛡️ Fraud Center</h2>
-            <div class="ap-sub">Risk scores, flags, device fingerprints and blacklists.</div>
-          </div>
-
-          <div class="grid grid-4 mb-4">
-            <div class="card stat-card reveal"><span class="stat-ico bg-danger">🚩</span><div class="stat-value" id="frHigh">0</div><div class="stat-label">High Risk</div></div>
-            <div class="card stat-card reveal"><span class="stat-ico bg-warning">⚠️</span><div class="stat-value" id="frMedium">0</div><div class="stat-label">Medium Risk</div></div>
-            <div class="card stat-card reveal"><span class="stat-ico bg-info">📡</span><div class="stat-value" id="frVpn">0</div><div class="stat-label">VPN/Proxy Detected</div></div>
-            <div class="card stat-card reveal"><span class="stat-ico bg-neutral">🤖</span><div class="stat-value" id="frEmulator">0</div><div class="stat-label">Emulators</div></div>
-          </div>
-
-          <div class="tabs mb-4" id="fraudTabs">
-            <button class="tab active" data-ftab="flagged">Flagged Users</button>
-            <button class="tab" data-ftab="blacklist">Blacklist</button>
-            <button class="tab" data-ftab="duplicates">Duplicates</button>
-            <button class="tab" data-ftab="events">Fraud Events</button>
-          </div>
-
-          <div class="card mb-4">
-            <div class="card-head"><h3 class="font-black text-md">🕵️ Fraud Rules</h3></div>
-            <div class="table-wrap" id="fraudRules"></div>
-          </div>
-
-          <div class="card">
-            <div class="table-wrap" id="fraudTable"></div>
-            <div class="pagination" id="fraudPagination">
-              <button class="page-btn" id="fraudPrev" disabled>«</button>
-              <button class="page-btn active" id="fraudPageInfo">1</button>
-              <button class="page-btn" id="fraudNext" disabled>»</button>
-            </div>
-          </div>
-        </section>
-
-        <!-- ============ SECTION: REFERRAL ============ -->
-        <section class="admin-page" id="sec-referral">
-          <div class="ap-head">
-            <h2 class="ap-title">🔗 Referral System</h2>
-            <div class="ap-sub">Referral rates, milestones and fraud protection.</div>
-          </div>
-
-          <div class="grid grid-2 mb-4">
-            <div class="card">
-              <div class="card-head"><h3 class="font-black text-md">⚙️ Referral Settings</h3></div>
-              <div class="field"><label>Earning Percent (%)</label><input type="number" class="input" id="refPercent" value="10"></div>
-              <div class="field"><label>Friend Join Bonus (coins)</label><input type="number" class="input" id="refJoinBonus" value="200"></div>
-              <div class="field"><label>First Activity Bonus</label><input type="number" class="input" id="refActivityBonus" value="500"></div>
-              <div class="field"><label>First Offer Bonus</label><input type="number" class="input" id="refOfferBonus" value="1000"></div>
-              <div class="field"><label>Block Self-Referral</label>
-                <select class="select" id="refBlockSelf">
-                  <option value="true">Yes</option>
-                  <option value="false">No</option>
-                </select>
+            <div class="card-head">
+              <div class="flex items-center gap-2">
+                <div class="avatar-sm" style="background:var(--grad-accent)">🎬</div>
+                <div class="card-title">Monetag</div>
               </div>
-              <div class="field"><label>Block Same IP Referrals</label>
-                <select class="select" id="refBlockIp">
-                  <option value="true">Yes</option>
-                  <option value="false">No</option>
-                </select>
-              </div>
+              <span class="badge badge-success">Connected</span>
             </div>
-            <div class="card">
-              <div class="card-head"><h3 class="font-black text-md">📊 Referral Stats</h3></div>
-              <div class="flex flex-col gap-2">
-                <div class="recap-item"><span class="rc-label">Total Referrals</span><span class="rc-value" id="rfTotal">0</span></div>
-                <div class="recap-item"><span class="rc-label">Active Referrers</span><span class="rc-value" id="rfActive">0</span></div>
-                <div class="recap-item"><span class="rc-label">Coins Paid in Referrals</span><span class="rc-value" id="rfCoins">0</span></div>
-                <div class="recap-item"><span class="rc-label">Referral Fraud Blocked</span><span class="rc-value" id="rfBlocked">0</span></div>
+            <div class="kv-row"><span class="kv-label">MultiTag Zone</span><span class="kv-value">270698</span></div>
+            <div class="kv-row"><span class="kv-label">MultiTag Script</span><span class="kv-value text-xs truncate" style="max-width:200px">https://quge5.com/88/tag.min.js</span></div>
+          </div>
+
+          <!-- Freecash Affiliate Card -->
+          <div class="card">
+            <div class="card-head">
+              <div class="flex items-center gap-2">
+                <div class="avatar-sm" style="background:var(--grad-success)">🎮</div>
+                <div class="card-title">Freecash</div>
               </div>
-              <div class="divider-h"></div>
-              <h3 class="font-black text-md mb-3">📈 Referral Funnel</h3>
-              <div class="chart-box"><canvas id="chartReferral" height="200"></canvas></div>
+              <span class="badge badge-info">Affiliate</span>
             </div>
+            <div class="kv-row"><span class="kv-label">Affiliate Link</span><span class="kv-value text-xs">freecash.com/r/34GRD6</span></div>
+            <div class="kv-row"><span class="kv-label">Banner URL</span><span class="kv-value text-xs truncate" style="max-width:200px">cdn.phototourl.com/free/...</span></div>
+          </div>
+
+          <!-- Rewarded Ads Config -->
+          <div class="card">
+            <div class="card-head"><div class="card-title">⚙️ Rewarded Ads</div></div>
+            <form id="adsConfigForm">
+              <div class="field">
+                <label>Coins per Ad</label>
+                <input type="number" class="input" id="adsCoinsPerAd" value="120">
+              </div>
+              <div class="field">
+                <label>Daily Cap</label>
+                <input type="number" class="input" id="adsDailyCap" value="15">
+              </div>
+              <div class="field">
+                <label>Revenue per 1,000 Ad Views ($)</label>
+                <input type="number" class="input" id="adsECPM" value="2.5" step="0.1">
+              </div>
+              <button type="submit" class="btn btn-accent btn-block">💾 Save Ad Settings</button>
+            </form>
+          </div>
+        </div>
+
+        <div class="card mb-4">
+          <div class="card-head"><div class="card-title">📈 Network Performance</div></div>
+          <div class="chart-wrap-sm"><canvas id="adsNetworkChart"></canvas></div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><div class="card-title">🧪 Postback Simulator</div></div>
+          <p class="text-sm text-muted mb-3">Simulate a provider postback to credit a user (for testing the offerwall pipeline).</p>
+          <form id="postbackForm" class="grid grid-3 gap-2">
+            <div class="field">
+              <label>User UID</label>
+              <input type="text" class="input" id="pbUid" placeholder="User UID">
+            </div>
+            <div class="field">
+              <label>Offer ID</label>
+              <input type="text" class="input" id="pbOfferId" placeholder="Offer ID">
+            </div>
+            <div class="field">
+              <label>Coins</label>
+              <input type="number" class="input" id="pbCoins" placeholder="500">
+            </div>
+            <button type="submit" class="btn btn-accent btn-block col-span-3">🚀 Simulate Postback</button>
+          </form>
+        </div>
+      </section>
+
+      <!-- ============================================================ -->
+      <!-- PAGE: CAMPAIGNS -->
+      <!-- ============================================================ -->
+      <section class="admin-page" id="admin-campaigns">
+        <div class="page-subhead">
+          <div class="ps-title">🎟️ Campaigns</div>
+          <div class="ps-sub">Promo codes, events and ad campaigns.</div>
+        </div>
+
+        <div class="slim-tabs mb-3">
+          <button class="slim-tab active" data-campaign-tab="promos">Promo Codes</button>
+          <button class="slim-tab" data-campaign-tab="events">Events</button>
+          <button class="slim-tab" data-campaign-tab="posts">Blog Posts</button>
+        </div>
+
+        <div class="flex justify-end mb-3">
+          <button class="btn btn-accent" id="createCampaignBtn">＋ New</button>
+        </div>
+
+        <div id="campaignPromosWrap">
+          <div class="grid grid-3" id="promosGrid"></div>
+        </div>
+        <div id="campaignEventsWrap" style="display:none">
+          <div class="grid grid-3" id="eventsGrid"></div>
+        </div>
+        <div id="campaignPostsWrap" style="display:none">
+          <div class="grid grid-3" id="postsGrid"></div>
+        </div>
+      </section>
+
+      <!-- ============================================================ -->
+      <!-- PAGE: REWARDS -->
+      <!-- ============================================================ -->
+      <section class="admin-page" id="admin-rewards">
+        <div class="page-subhead">
+          <div class="ps-title">🎁 Rewards Store</div>
+          <div class="ps-sub">Manage the rewards catalog, denominations and stock.</div>
+        </div>
+
+        <div class="toolbar">
+          <div class="search-box flex-1">
+            <input type="search" class="input" id="rewardsSearch" placeholder="Search rewards...">
+            <span class="s-ico">🔍</span>
+          </div>
+          <select class="select" id="rewardsCategoryFilter" style="max-width:180px">
+            <option value="all">All Categories</option>
+            <option value="Mobile Top-Up">Mobile Top-Up</option>
+            <option value="Game Top-Up">Game Top-Up</option>
+            <option value="Gift Cards">Gift Cards</option>
+            <option value="Crypto">Crypto</option>
+            <option value="PayPal">PayPal</option>
+            <option value="Cash">Cash</option>
+          </select>
+          <button class="btn btn-accent" id="createRewardBtn">＋ New Reward</button>
+        </div>
+
+        <div class="grid grid-4" id="rewardsGridAdmin"></div>
+      </section>
+
+      <!-- ============================================================ -->
+      <!-- PAGE: ORDERS -->
+      <!-- ============================================================ -->
+      <section class="admin-page" id="admin-orders">
+        <div class="page-subhead">
+          <div class="ps-title">📦 Orders</div>
+          <div class="ps-sub">Reward redemptions and game top-up orders.</div>
+        </div>
+
+        <div class="filter-row">
+          <button class="filter-chip active" data-order-status="all">All Status</button>
+          <button class="filter-chip" data-order-status="pending">Pending</button>
+          <button class="filter-chip" data-order-status="processing">Processing</button>
+          <button class="filter-chip" data-order-status="completed">Completed</button>
+          <button class="filter-chip" data-order-status="cancelled">Cancelled</button>
+          <button class="filter-chip" data-order-status="refunded">Refunded</button>
+        </div>
+
+        <div class="filter-row">
+          <button class="filter-chip active" data-order-type="all">All Types</button>
+          <button class="filter-chip" data-order-type="reward">Rewards</button>
+          <button class="filter-chip" data-order-type="topup">Top-Up</button>
+        </div>
+
+        <div class="head-tools mb-3">
+          <button class="btn btn-ghost btn-sm" id="exportOrdersBtn">⬇️ Export CSV</button>
+        </div>
+
+        <div class="grid grid-4 mb-3">
+          <div class="qs"><div class="qs-label">⏳ Pending</div><div class="qs-value" id="ordPending">0</div></div>
+          <div class="qs"><div class="qs-label">✅ Completed</div><div class="qs-value" id="ordCompleted">0</div></div>
+          <div class="qs"><div class="qs-label">↩️ Refunded</div><div class="qs-value" id="ordRefunded">0</div></div>
+          <div class="qs"><div class="qs-label">💵 Order Value</div><div class="qs-value" id="ordValue">$0</div></div>
+        </div>
+
+        <div class="table-wrap">
+          <table class="table datatable">
+            <thead>
+              <tr>
+                <th>Order ID</th>
+                <th>User</th>
+                <th>Item</th>
+                <th>Type</th>
+                <th>Cost</th>
+                <th>Status</th>
+                <th>Date</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="ordersTableBody"></tbody>
+          </table>
+        </div>
+
+        <div class="pagination mt-3" id="ordersPagination"></div>
+      </section>
+
+      <!-- ============================================================ -->
+      <!-- PAGE: WITHDRAWALS -->
+      <!-- ============================================================ -->
+      <section class="admin-page" id="admin-withdrawals">
+        <div class="page-subhead">
+          <div class="ps-title">💵 Withdrawals</div>
+          <div class="ps-sub">Review, approve or reject payout requests.</div>
+        </div>
+
+        <div class="filter-row">
+          <button class="filter-chip active" data-wd-status="all">All Status</button>
+          <button class="filter-chip" data-wd-status="pending">Pending</button>
+          <button class="filter-chip" data-wd-status="approved">Approved</button>
+          <button class="filter-chip" data-wd-status="processing">Processing</button>
+          <button class="filter-chip" data-wd-status="paid">Paid</button>
+          <button class="filter-chip" data-wd-status="rejected">Rejected</button>
+          <button class="filter-chip" data-wd-status="chargeback">Chargeback</button>
+        </div>
+
+        <div class="filter-row">
+          <button class="filter-chip active" data-wd-method="all">All Methods</button>
+          <button class="filter-chip" data-wd-method="PayPal">PayPal</button>
+          <button class="filter-chip" data-wd-method="Bank">Bank</button>
+          <button class="filter-chip" data-wd-method="Crypto">Crypto</button>
+          <button class="filter-chip" data-wd-method="Gift Card">Gift Card</button>
+        </div>
+
+        <div class="head-tools mb-3">
+          <button class="btn btn-ghost btn-sm" id="exportWithdrawalsBtn">⬇️ Export CSV</button>
+        </div>
+
+        <div class="grid grid-4 mb-3">
+          <div class="qs"><div class="qs-label">⏳ Pending</div><div class="qs-value" id="wdPending">0</div></div>
+          <div class="qs"><div class="qs-label">✅ Approved</div><div class="qs-value" id="wdApproved">0</div></div>
+          <div class="qs"><div class="qs-label">💸 Total Paid</div><div class="qs-value" id="wdPaid">$0</div></div>
+          <div class="qs"><div class="qs-label">↩️ Chargebacks</div><div class="qs-value" id="wdChargebacks">0</div></div>
+        </div>
+
+        <div class="table-wrap">
+          <table class="table datatable">
+            <thead>
+              <tr>
+                <th>User</th>
+                <th>Amount</th>
+                <th>USD</th>
+                <th>Method</th>
+                <th>Status</th>
+                <th>Risk</th>
+                <th>Date</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="withdrawalsTableBody"></tbody>
+          </table>
+        </div>
+
+        <div class="pagination mt-3" id="withdrawalsPagination"></div>
+      </section>
+
+      <!-- ============================================================ -->
+      <!-- PAGE: FRAUD CENTER -->
+      <!-- ============================================================ -->
+      <section class="admin-page" id="admin-fraud">
+        <div class="page-subhead">
+          <div class="ps-title">🛡️ Fraud Center</div>
+          <div class="ps-sub">Risk scores, flags, device fingerprints and blacklists.</div>
+        </div>
+
+        <div class="grid grid-4 mb-4">
+          <div class="kpi-glass"><div class="kg-label">🚩 High Risk</div><div class="kg-value text-danger" id="fraudHigh">0</div></div>
+          <div class="kpi-glass"><div class="kg-label">⚠️ Medium Risk</div><div class="kg-value text-warning" id="fraudMed">0</div></div>
+          <div class="kpi-glass"><div class="kg-label">📡 VPN/Proxy Detected</div><div class="kg-value" id="fraudVpn">0</div></div>
+          <div class="kpi-glass"><div class="kg-label">🤖 Emulators</div><div class="kg-value" id="fraudEmulator">0</div></div>
+        </div>
+
+        <div class="slim-tabs mb-3" id="fraudTabs">
+          <button class="slim-tab active" data-fraud-tab="flagged">Flagged Users</button>
+          <button class="slim-tab" data-fraud-tab="blacklist">Blacklist</button>
+          <button class="slim-tab" data-fraud-tab="duplicates">Duplicates</button>
+          <button class="slim-tab" data-fraud-tab="events">Fraud Events</button>
+        </div>
+
+        <div id="fraudFlaggedWrap">
+          <div class="table-wrap">
+            <table class="table datatable">
+              <thead><tr><th>User</th><th>Risk Score</th><th>Flags</th><th>Devices</th><th>IPs</th><th>Actions</th></tr></thead>
+              <tbody id="fraudFlaggedBody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div id="fraudBlacklistWrap" style="display:none">
+          <div class="card">
+            <h3 class="font-bold mb-3">🚫 Blacklisted IPs & Devices</h3>
+            <div id="fraudBlacklist"></div>
+          </div>
+        </div>
+        <div id="fraudDuplicatesWrap" style="display:none">
+          <div class="table-wrap">
+            <table class="table datatable">
+              <thead><tr><th>Shared Fingerprint</th><th>Users</th><th>Action</th></tr></thead>
+              <tbody id="fraudDuplicatesBody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div id="fraudEventsWrap" style="display:none">
+          <div class="table-wrap">
+            <table class="table datatable">
+              <thead><tr><th>User</th><th>Type</th><th>Severity</th><th>Details</th><th>Date</th></tr></thead>
+              <tbody id="fraudEventsBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card mt-4">
+          <div class="card-head">
+            <div class="card-title">🕵️ Fraud Rules</div>
+          </div>
+          <div id="fraudRulesConfig"></div>
+        </div>
+      </section>
+
+      <!-- ============================================================ -->
+      <!-- PAGE: REFERRAL SYSTEM -->
+      <!-- ============================================================ -->
+      <section class="admin-page" id="admin-referral">
+        <div class="page-subhead">
+          <div class="ps-title">🔗 Referral System</div>
+          <div class="ps-sub">Referral rates, milestones and fraud protection.</div>
+        </div>
+
+        <div class="grid grid-2 mb-4">
+          <div class="card">
+            <div class="card-head"><div class="card-title">⚙️ Referral Settings</div></div>
+            <form id="referralSettingsForm">
+              <div class="field">
+                <label>Earning Percent (%)</label>
+                <input type="number" class="input" id="refPercent" value="10" step="0.1">
+              </div>
+              <div class="field">
+                <label>Friend Join Bonus (coins)</label>
+                <input type="number" class="input" id="refJoinBonus" value="200">
+              </div>
+              <div class="field">
+                <label>First Activity Bonus</label>
+                <input type="number" class="input" id="refActivityBonus" value="500">
+              </div>
+              <div class="field">
+                <label>First Offer Bonus</label>
+                <input type="number" class="input" id="refOfferBonus" value="1000">
+              </div>
+              <div class="field">
+                <label>Block Self-Referral</label>
+                <div class="flex gap-2">
+                  <label class="cbx"><input type="radio" name="refSelfBlock" value="yes" checked><span class="cbx-box">✓</span>Yes</label>
+                  <label class="cbx"><input type="radio" name="refSelfBlock" value="no"><span class="cbx-box">✓</span>No</label>
+                </div>
+              </div>
+              <div class="field">
+                <label>Block Same IP Referrals</label>
+                <div class="flex gap-2">
+                  <label class="cbx"><input type="radio" name="refIpBlock" value="yes" checked><span class="cbx-box">✓</span>Yes</label>
+                  <label class="cbx"><input type="radio" name="refIpBlock" value="no"><span class="cbx-box">✓</span>No</label>
+                </div>
+              </div>
+              <button type="submit" class="btn btn-accent btn-block">💾 Save Referral Settings</button>
+            </form>
           </div>
 
           <div class="card">
-            <div class="card-head"><h3 class="font-black text-md">👥 Referral Records</h3></div>
-            <div class="table-wrap" id="referralTable"></div>
-            <div class="pagination" id="rfPagination">
-              <button class="page-btn" id="rfPrev" disabled>«</button>
-              <button class="page-btn active" id="rfPageInfo">1</button>
-              <button class="page-btn" id="rfNext" disabled>»</button>
+            <div class="card-head"><div class="card-title">📊 Referral Stats</div></div>
+            <div class="grid grid-2 gap-2">
+              <div class="stat-mini"><div class="sm-ico" style="background:rgba(0,176,255,.15)">👥</div><div><div class="sm-value" id="refTotal">0</div><div class="sm-label">Total Referrals</div></div></div>
+              <div class="stat-mini"><div class="sm-ico" style="background:rgba(0,230,118,.15)">🔥</div><div><div class="sm-value" id="refActiveReferrers">0</div><div class="sm-label">Active Referrers</div></div></div>
+              <div class="stat-mini"><div class="sm-ico" style="background:rgba(255,193,7,.15)">🪙</div><div><div class="sm-value" id="refCoinsPaid">0</div><div class="sm-label">Coins Paid in Referrals</div></div></div>
+              <div class="stat-mini"><div class="sm-ico" style="background:rgba(255,61,113,.15)">🚫</div><div><div class="sm-value" id="refFraudBlocked">0</div><div class="sm-label">Referral Fraud Blocked</div></div></div>
             </div>
           </div>
-        </section>
+        </div>
 
-        <!-- ============ SECTION: CONTENT ============ -->
-        <section class="admin-page" id="sec-content">
-          <div class="ap-head">
-            <h2 class="ap-title">📰 Content</h2>
-            <div class="ap-sub">FAQ, blog posts, terms and privacy pages.</div>
+        <div class="card mb-4">
+          <div class="card-head"><div class="card-title">📈 Referral Funnel</div></div>
+          <div class="chart-wrap-sm"><canvas id="referralFunnelChart"></canvas></div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><div class="card-title">👥 Referral Records</div></div>
+          <div class="table-wrap">
+            <table class="table datatable">
+              <thead><tr><th>Referrer</th><th>Referred</th><th>Status</th><th>Joined</th><th>Earned</th></tr></thead>
+              <tbody id="referralRecordsBody"></tbody>
+            </table>
           </div>
+          <div class="pagination mt-3" id="referralPagination"></div>
+        </div>
+      </section>
 
-          <div class="grid grid-2 mb-4">
+      <!-- ============================================================ -->
+      <!-- PAGE: CONTENT -->
+      <!-- ============================================================ -->
+      <section class="admin-page" id="admin-content">
+        <div class="page-subhead">
+          <div class="ps-title">📰 Content</div>
+          <div class="ps-sub">FAQ, blog posts, terms and privacy pages.</div>
+        </div>
+
+        <div class="slim-tabs mb-3" id="contentTabs">
+          <button class="slim-tab active" data-content-tab="faq">❓ FAQ Editor</button>
+          <button class="slim-tab" data-content-tab="legal">📄 Legal Pages</button>
+          <button class="slim-tab" data-content-tab="settings">⚙️ Site Content Settings</button>
+          <button class="slim-tab" data-content-tab="blog">✍️ Blog Editor</button>
+        </div>
+
+        <div id="contentFaqWrap">
+          <div class="flex justify-end mb-3">
+            <button class="btn btn-accent" id="addFaqBtn">＋ Add</button>
+          </div>
+          <div class="dnd-list" id="faqsList"></div>
+        </div>
+
+        <div id="contentLegalWrap" style="display:none">
+          <div class="grid grid-2">
             <div class="card">
-              <div class="card-head"><h3 class="font-black text-md">❓ FAQ Editor</h3><button class="btn btn-accent btn-sm" id="addFaqBtn">＋ Add</button></div>
-              <div class="table-wrap" id="faqTable"></div>
-            </div>
-            <div class="card">
-              <div class="card-head"><h3 class="font-black text-md">📄 Legal Pages</h3></div>
-              <div class="flex flex-col gap-2">
-                <button class="btn btn-ghost btn-block" data-editor="terms">📜 Edit Terms &amp; Conditions</button>
-                <button class="btn btn-ghost btn-block" data-editor="privacy">🔒 Edit Privacy Policy</button>
+              <h3 class="font-bold mb-3">📜 Edit Terms & Conditions</h3>
+              <div class="rte">
+                <div class="rte-toolbar">
+                  <button type="button" data-rte="bold"><b>B</b></button>
+                  <button type="button" data-rte="italic"><i>I</i></button>
+                  <button type="button" data-rte="h2">H2</button>
+                  <button type="button" data-rte="ul">•</button>
+                </div>
+                <div class="rte-area" id="termsEditor" contenteditable="true" data-placeholder="Enter Terms content..."></div>
               </div>
-              <div class="divider-h"></div>
-              <h3 class="font-black text-md mb-3">⚙️ Site Content Settings</h3>
-              <div class="field"><label>Hero Title</label><input type="text" class="input" id="ctHeroTitle"></div>
-              <div class="field"><label>Hero Subtitle</label><input type="text" class="input" id="ctHeroSub"></div>
-              <div class="field"><label>Site Status Banner</label><input type="text" class="input" id="ctBanner"></div>
+              <button class="btn btn-accent btn-block mt-3" id="saveTermsBtn">💾 Save Terms</button>
             </div>
+            <div class="card">
+              <h3 class="font-bold mb-3">🔒 Edit Privacy Policy</h3>
+              <div class="rte">
+                <div class="rte-toolbar">
+                  <button type="button" data-rte="bold"><b>B</b></button>
+                  <button type="button" data-rte="italic"><i>I</i></button>
+                  <button type="button" data-rte="h2">H2</button>
+                  <button type="button" data-rte="ul">•</button>
+                </div>
+                <div class="rte-area" id="privacyEditor" contenteditable="true" data-placeholder="Enter Privacy Policy content..."></div>
+              </div>
+              <button class="btn btn-accent btn-block mt-3" id="savePrivacyBtn">💾 Save Privacy</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="contentSettingsWrap" style="display:none">
+          <div class="card">
+            <h3 class="font-bold mb-3">⚙️ Site Content Settings</h3>
+            <form id="contentSettingsForm">
+              <div class="field">
+                <label>Hero Title</label>
+                <input type="text" class="input" id="contentHeroTitle" value="Earn Coins Doing What You Love">
+              </div>
+              <div class="field">
+                <label>Hero Subtitle</label>
+                <input type="text" class="input" id="contentHeroSub">
+              </div>
+              <div class="field">
+                <label>Site Status Banner</label>
+                <input type="text" class="input" id="contentBanner" placeholder="Leave empty to disable">
+              </div>
+              <button type="submit" class="btn btn-accent btn-block">💾 Save Content Settings</button>
+            </form>
+          </div>
+        </div>
+
+        <div id="contentBlogWrap" style="display:none">
+          <div class="flex justify-end mb-3">
+            <button class="btn btn-accent" id="addPostBtn">＋ New Post</button>
+          </div>
+          <div class="grid grid-3" id="blogPostsGrid"></div>
+        </div>
+      </section>
+
+      <!-- ============================================================ -->
+      <!-- PAGE: SUPPORT -->
+      <!-- ============================================================ -->
+      <section class="admin-page" id="admin-support">
+        <div class="page-subhead">
+          <div class="ps-title">🎧 Support</div>
+          <div class="ps-sub">Handle user tickets and conversations.</div>
+        </div>
+
+        <div class="grid grid-4 mb-4">
+          <div class="kpi-glass"><div class="kg-label">🕐 Open</div><div class="kg-value" id="supOpen">0</div></div>
+          <div class="kpi-glass"><div class="kg-label">🔄 In Progress</div><div class="kg-value" id="supProgress">0</div></div>
+          <div class="kpi-glass"><div class="kg-label">✅ Resolved</div><div class="kg-value" id="supResolved">0</div></div>
+          <div class="kpi-glass"><div class="kg-label">⏱️ Avg. Response</div><div class="kg-value" id="supAvgTime">~4h</div></div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <div class="card-title">🎟️ Tickets</div>
+            <button class="btn btn-ghost btn-sm" id="exportTicketsBtn">⬇️ Export</button>
+          </div>
+          <div class="table-wrap">
+            <table class="table datatable">
+              <thead><tr><th>ID</th><th>User</th><th>Subject</th><th>Category</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
+              <tbody id="ticketsTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================ -->
+      <!-- PAGE: SYSTEM SETTINGS -->
+      <!-- ============================================================ -->
+      <section class="admin-page" id="admin-settings">
+        <div class="page-subhead">
+          <div class="ps-title">⚙️ System Settings</div>
+          <div class="ps-sub">Global economy, maintenance and security controls.</div>
+        </div>
+
+        <div class="grid grid-2 mb-4">
+          <div class="card">
+            <div class="card-head"><div class="card-title">🪙 Coin Economy</div></div>
+            <form id="coinEconomyForm">
+              <div class="field">
+                <label>Coins per $1</label>
+                <input type="number" class="input" id="setCoinRate" value="10000">
+              </div>
+              <div class="field">
+                <label>Signup Bonus (coins)</label>
+                <input type="number" class="input" id="setSignupBonus" value="100">
+              </div>
+              <div class="field">
+                <label>Minimum Withdrawal (coins)</label>
+                <input type="number" class="input" id="setMinWithdraw" value="10000">
+              </div>
+              <div class="field">
+                <label>Withdrawal Fee (%)</label>
+                <input type="number" class="input" id="setWithdrawFee" value="1" step="0.1">
+              </div>
+              <div class="field">
+                <label>Fraud Reserve (%)</label>
+                <input type="number" class="input" id="setFraudReserve" value="10" step="0.1">
+              </div>
+              <div class="field">
+                <label>Operational Cost (%)</label>
+                <input type="number" class="input" id="setOpCost" value="5" step="0.1">
+              </div>
+            </form>
           </div>
 
           <div class="card">
-            <div class="card-head"><h3 class="font-black text-md">✍️ Blog Editor</h3><button class="btn btn-accent btn-sm" id="addPostBtn">＋ New Post</button></div>
-            <div class="table-wrap" id="postsTable"></div>
+            <div class="card-head"><div class="card-title">🛠️ Site Controls</div></div>
+            <form id="siteControlsForm">
+              <div class="field">
+                <label>Maintenance Mode</label>
+                <div class="flex gap-2">
+                  <label class="cbx"><input type="radio" name="maintenance" value="off" checked><span class="cbx-box">✓</span>Off</label>
+                  <label class="cbx"><input type="radio" name="maintenance" value="on"><span class="cbx-box">✓</span>On</label>
+                </div>
+              </div>
+              <div class="field">
+                <label>Allow New Signups</label>
+                <div class="flex gap-2">
+                  <label class="cbx"><input type="radio" name="allowSignup" value="yes" checked><span class="cbx-box">✓</span>Yes</label>
+                  <label class="cbx"><input type="radio" name="allowSignup" value="no"><span class="cbx-box">✓</span>No</label>
+                </div>
+              </div>
+              <div class="field">
+                <label>Site URL</label>
+                <input type="url" class="input" id="setSiteUrl">
+              </div>
+              <div class="field">
+                <label>Support Email</label>
+                <input type="email" class="input" id="setSupportEmail" value="support@rewords.com">
+              </div>
+              <div class="field">
+                <label>Announcement Banner</label>
+                <input type="text" class="input" id="setAnnouncement" placeholder="Optional banner message">
+              </div>
+            </form>
           </div>
-        </section>
+        </div>
 
-        <!-- ============ SECTION: SUPPORT ============ -->
-        <section class="admin-page" id="sec-support">
-          <div class="ap-head">
-            <h2 class="ap-title">🎧 Support</h2>
-            <div class="ap-sub">Handle user tickets and conversations.</div>
-          </div>
+        <div class="flex gap-2 mb-4">
+          <button class="btn btn-accent btn-lg" id="saveAllSettingsBtn">💾 Save System Settings</button>
+        </div>
 
-          <div class="grid grid-4 mb-4">
-            <div class="card stat-card reveal"><span class="stat-ico bg-warning">🕐</span><div class="stat-value" id="spOpen">0</div><div class="stat-label">Open</div></div>
-            <div class="card stat-card reveal"><span class="stat-ico bg-info">🔄</span><div class="stat-value" id="spInProgress">0</div><div class="stat-label">In Progress</div></div>
-            <div class="card stat-card reveal"><span class="stat-ico bg-success">✅</span><div class="stat-value" id="spResolved">0</div><div class="stat-label">Resolved</div></div>
-            <div class="card stat-card reveal"><span class="stat-ico bg-accent">⏱️</span><div class="stat-value" id="spAvgTime">~4h</div><div class="stat-label">Avg. Response</div></div>
+        <div class="grid grid-2 mb-4">
+          <div class="card">
+            <div class="card-head"><div class="card-title">📦 Backup & Export</div></div>
+            <div class="flex gap-2 mb-3">
+              <button class="btn btn-accent flex-1" id="exportBackupBtn">📥 Export Full Backup (JSON)</button>
+              <button class="btn btn-ghost flex-1" id="importBackupBtn">📤 Import Backup</button>
+            </div>
+            <p class="text-xs text-muted">Export all collections as a downloadable JSON snapshot.</p>
           </div>
 
           <div class="card">
-            <div class="card-head"><h3 class="font-black text-md">🎟️ Tickets</h3><button class="btn btn-primary btn-sm" id="exportTicketsBtn">⬇️ Export</button></div>
-            <div class="table-wrap" id="ticketsTable"></div>
-          </div>
-        </section>
-
-        <!-- ============ SECTION: SYSTEM ============ -->
-        <section class="admin-page" id="sec-system">
-          <div class="ap-head">
-            <h2 class="ap-title">⚙️ System Settings</h2>
-            <div class="ap-sub">Global economy, maintenance and security controls.</div>
-          </div>
-
-          <div class="grid grid-2 mb-4">
-            <div class="card">
-              <div class="card-head"><h3 class="font-black text-md">🪙 Coin Economy</h3></div>
-              <div class="field"><label>Coins per $1</label><input type="number" class="input" id="sysCoinRate" value="10000"></div>
-              <div class="field"><label>Signup Bonus (coins)</label><input type="number" class="input" id="sysSignupBonus" value="100"></div>
-              <div class="field"><label>Minimum Withdrawal (coins)</label><input type="number" class="input" id="sysMinWithdraw" value="10000"></div>
-              <div class="field"><label>Withdrawal Fee (%)</label><input type="number" class="input" id="sysWdFee" value="1"></div>
-              <div class="field"><label>Fraud Reserve (%)</label><input type="number" class="input" id="sysFraudReserve" value="2"></div>
-              <div class="field"><label>Operational Cost (%)</label><input type="number" class="input" id="sysOpCost" value="3"></div>
-            </div>
-            <div class="card">
-              <div class="card-head"><h3 class="font-black text-md">🛠️ Site Controls</h3></div>
-              <div class="field"><label>Maintenance Mode</label>
-                <select class="select" id="sysMaintenance">
-                  <option value="false">Off</option>
-                  <option value="true">On</option>
-                </select>
-              </div>
-              <div class="field"><label>Allow New Signups</label>
-                <select class="select" id="sysSignups">
-                  <option value="true">Yes</option>
-                  <option value="false">No</option>
-                </select>
-              </div>
-              <div class="field"><label>Site URL</label><input type="text" class="input" id="sysSiteUrl"></div>
-              <div class="field"><label>Support Email</label><input type="text" class="input" id="sysSupportEmail"></div>
-              <div class="field"><label>Announcement Banner</label><textarea class="textarea" id="sysAnnouncement" rows="3"></textarea></div>
-              <button class="btn btn-accent btn-block" id="saveSystemBtn">💾 Save System Settings</button>
-            </div>
-          </div>
-
-          <div class="card mb-4">
-            <div class="card-head"><h3 class="font-black text-md">📦 Backup &amp; Export</h3></div>
-            <div class="flex wrap gap-2">
-              <button class="btn btn-ghost" id="backupBtn">📥 Export Full Backup (JSON)</button>
-              <button class="btn btn-ghost" id="importBtn">📤 Import Backup</button>
-            </div>
-            <input type="file" id="importFile" accept=".json" hidden>
-            <div class="form-hint mt-2">Export all collections as a downloadable JSON snapshot.</div>
-          </div>
-
-          <div class="card">
-            <div class="card-head"><h3 class="font-black text-md">🚀 Data Seeding</h3></div>
+            <div class="card-head"><div class="card-title">🚀 Data Seeding</div></div>
             <p class="text-sm text-muted mb-3">Seed the database with sample offers, games, surveys, rewards, providers, FAQs and blog posts. Useful for first launch.</p>
-            <button class="btn btn-primary" id="seedBtn">🌱 Seed Sample Data</button>
+            <button class="btn btn-accent btn-block" id="seedDataBtn">🌱 Seed Sample Data</button>
           </div>
-        </section>
+        </div>
+      </section>
 
-        <!-- ============ SECTION: SECURITY ============ -->
-        <section class="admin-page" id="sec-security">
-          <div class="ap-head">
-            <h2 class="ap-title">🔐 Security</h2>
-            <div class="ap-sub">Platform-wide security settings and 2FA management.</div>
-          </div>
+      <!-- ============================================================ -->
+      <!-- PAGE: SECURITY -->
+      <!-- ============================================================ -->
+      <section class="admin-page" id="admin-security">
+        <div class="page-subhead">
+          <div class="ps-title">🔐 Security</div>
+          <div class="ps-sub">Platform-wide security settings and 2FA management.</div>
+        </div>
 
-          <div class="grid grid-2 mb-4">
-            <div class="card">
-              <div class="card-head"><h3 class="font-black text-md">🔑 Authentication</h3></div>
-              <div class="field"><label>Require Email Verification</label>
-                <select class="select" id="secReqEmail">
-                  <option value="false">No</option>
-                  <option value="true">Yes</option>
-                </select>
+        <div class="grid grid-2 mb-4">
+          <div class="card">
+            <div class="card-head"><div class="card-title">🔑 Authentication</div></div>
+            <form id="authSettingsForm">
+              <div class="field">
+                <label>Require Email Verification</label>
+                <div class="flex gap-2">
+                  <label class="cbx"><input type="radio" name="reqEmail" value="no"><span class="cbx-box">✓</span>No</label>
+                  <label class="cbx"><input type="radio" name="reqEmail" value="yes" checked><span class="cbx-box">✓</span>Yes</label>
+                </div>
               </div>
-              <div class="field"><label>Require 2FA for Withdrawals</label>
-                <select class="select" id="sec2faWithdraw">
-                  <option value="false">No</option>
-                  <option value="true">Yes</option>
-                </select>
+              <div class="field">
+                <label>Require 2FA for Withdrawals</label>
+                <div class="flex gap-2">
+                  <label class="cbx"><input type="radio" name="req2fa" value="no" checked><span class="cbx-box">✓</span>No</label>
+                  <label class="cbx"><input type="radio" name="req2fa" value="yes"><span class="cbx-box">✓</span>Yes</label>
+                </div>
               </div>
-              <div class="field"><label>Password Min Length</label><input type="number" class="input" id="secMinPw" value="8"></div>
-              <div class="field"><label>Google Sign-In</label>
-                <select class="select" id="secGoogle">
-                  <option value="true">Enabled</option>
-                  <option value="false">Disabled</option>
-                </select>
+              <div class="field">
+                <label>Password Min Length</label>
+                <input type="number" class="input" id="setPwMin" value="8">
               </div>
-            </div>
-            <div class="card">
-              <div class="card-head"><h3 class="font-black text-md">🧊 Rate Limits</h3></div>
-              <div class="field"><label>Withdrawals per day</label><input type="number" class="input" id="secWdDaily" value="1"></div>
-              <div class="field"><label>Withdrawals per week</label><input type="number" class="input" id="secWdWeekly" value="3"></div>
-              <div class="field"><label>Top-ups per day</label><input type="number" class="input" id="secTuDaily" value="5"></div>
-              <div class="field"><label>Max coins per withdrawal</label><input type="number" class="input" id="secWdMax" value="1000000"></div>
-              <div class="field"><label>Login attempts before lock</label><input type="number" class="input" id="secLoginLock" value="5"></div>
-            </div>
-          </div>
-
-          <div class="card mb-4">
-            <div class="card-head"><h3 class="font-black text-md">🧬 Risk Engine Thresholds</h3></div>
-            <div class="grid grid-3 mb-3">
-              <div class="field"><label>VPN/Proxy penalty (+points)</label><input type="number" class="input" id="secVpnPenalty" value="25"></div>
-              <div class="field"><label>Emulator penalty</label><input type="number" class="input" id="secEmuPenalty" value="20"></div>
-              <div class="field"><label>Duplicate device penalty</label><input type="number" class="input" id="secDupPenalty" value="15"></div>
-            </div>
-            <div class="grid grid-3 mb-3">
-              <div class="field"><label>Auto-flag threshold</label><input type="number" class="input" id="secFlagThreshold" value="50"></div>
-              <div class="field"><label>Auto-restrict threshold</label><input type="number" class="input" id="secRestrictThreshold" value="80"></div>
-              <div class="field"><label>Auto-ban threshold</label><input type="number" class="input" id="secBanThreshold" value="95"></div>
-            </div>
-            <button class="btn btn-accent" id="saveSecurityBtn">💾 Save Security Settings</button>
-          </div>
-
-          <div class="card mb-4">
-            <div class="card-head"><h3 class="font-black text-md">📡 Security Events</h3></div>
-            <div class="table-wrap" id="secEventsTable"></div>
+              <div class="field">
+                <label>Google Sign-In</label>
+                <div class="flex gap-2">
+                  <label class="cbx"><input type="radio" name="googleSignin" value="enabled" checked><span class="cbx-box">✓</span>Enabled</label>
+                  <label class="cbx"><input type="radio" name="googleSignin" value="disabled"><span class="cbx-box">✓</span>Disabled</label>
+                </div>
+              </div>
+            </form>
           </div>
 
           <div class="card">
-            <div class="card-head"><h3 class="font-black text-md">🧮 Check Admin Claims</h3></div>
-            <p class="text-sm text-muted mb-3">Verify a user's admin custom claim directly.</p>
-            <div class="flex gap-2">
-              <input type="text" class="input" id="claimUid" placeholder="User UID or email">
-              <button class="btn btn-primary" id="checkClaimBtn">🔍 Check</button>
-            </div>
-            <div id="claimResult" class="mt-3"></div>
+            <div class="card-head"><div class="card-title">🧊 Rate Limits</div></div>
+            <form id="rateLimitsForm">
+              <div class="field">
+                <label>Withdrawals per day</label>
+                <input type="number" class="input" id="setWdDay" value="3">
+              </div>
+              <div class="field">
+                <label>Withdrawals per week</label>
+                <input type="number" class="input" id="setWdWeek" value="10">
+              </div>
+              <div class="field">
+                <label>Top-ups per day</label>
+                <input type="number" class="input" id="setTopupDay" value="5">
+              </div>
+              <div class="field">
+                <label>Max coins per withdrawal</label>
+                <input type="number" class="input" id="setWdMax" value="500000">
+              </div>
+              <div class="field">
+                <label>Login attempts before lock</label>
+                <input type="number" class="input" id="setLoginAttempts" value="5">
+              </div>
+            </form>
           </div>
-        </section>
+        </div>
 
-        <!-- ============ SECTION: ADMIN ROLES ============ -->
-        <section class="admin-page" id="sec-roles">
-          <div class="ap-head">
-            <h2 class="ap-title">🪪 Admin Roles &amp; Permissions</h2>
-            <div class="ap-sub">Grant and revoke admin access with granular permissions.</div>
+        <div class="card mb-4">
+          <div class="card-head"><div class="card-title">🧬 Risk Engine Thresholds</div></div>
+          <form id="riskEngineForm" class="grid grid-3 gap-3">
+            <div class="field">
+              <label>VPN/Proxy penalty (+points)</label>
+              <input type="number" class="input" id="setVpnPenalty" value="30">
+            </div>
+            <div class="field">
+              <label>Emulator penalty</label>
+              <input type="number" class="input" id="setEmuPenalty" value="40">
+            </div>
+            <div class="field">
+              <label>Duplicate device penalty</label>
+              <input type="number" class="input" id="setDupPenalty" value="50">
+            </div>
+            <div class="field">
+              <label>Auto-flag threshold</label>
+              <input type="number" class="input" id="setFlagThreshold" value="60">
+            </div>
+            <div class="field">
+              <label>Auto-restrict threshold</label>
+              <input type="number" class="input" id="setRestrictThreshold" value="80">
+            </div>
+            <div class="field">
+              <label>Auto-ban threshold</label>
+              <input type="number" class="input" id="setBanThreshold" value="95">
+            </div>
+          </form>
+        </div>
+
+        <button class="btn btn-accent btn-lg mb-4" id="saveSecurityBtn">💾 Save Security Settings</button>
+
+        <div class="card mb-4">
+          <div class="card-head"><div class="card-title">📡 Security Events</div></div>
+          <div class="log-stream" id="securityEventsList"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><div class="card-title">🧮 Check Admin Claims</div></div>
+          <p class="text-sm text-muted mb-3">Verify a user's admin custom claim directly.</p>
+          <div class="flex gap-2">
+            <input type="email" class="input flex-1" id="checkClaimEmail" placeholder="admin@email.com">
+            <button class="btn btn-accent" id="checkClaimBtn">🔍 Check</button>
           </div>
+          <div id="checkClaimResult" class="mt-3"></div>
+        </div>
+      </section>
 
-          <div class="grid grid-3 mb-4">
-            <div class="card role-card" data-role="superadmin">
-              <div class="role-ico">👑</div>
-              <div class="role-name">Super Admin</div>
-              <div class="role-sub">Full access to every module.</div>
-              <span class="badge badge-grad">All permissions</span>
+      <!-- ============================================================ -->
+      <!-- PAGE: ADMIN ROLES -->
+      <!-- ============================================================ -->
+      <section class="admin-page" id="admin-roles">
+        <div class="page-subhead">
+          <div class="ps-title">🪪 Admin Roles & Permissions</div>
+          <div class="ps-sub">Grant and revoke admin access with granular permissions.</div>
+        </div>
+
+        <div class="grid grid-3 mb-4">
+          <div class="card">
+            <div class="flex items-center gap-2 mb-2">
+              <span class="role-bar role-super">👑 Super Admin</span>
             </div>
-            <div class="card role-card" data-role="finance">
-              <div class="role-ico">💰</div>
-              <div class="role-name">Finance Admin</div>
-              <div class="role-sub">Finance, withdrawals, orders.</div>
-              <span class="badge badge-info">Limited</span>
-            </div>
-            <div class="card role-card" data-role="support">
-              <div class="role-ico">🎧</div>
-              <div class="role-name">Support Agent</div>
-              <div class="role-sub">Tickets, users, content.</div>
-              <span class="badge badge-info">Limited</span>
-            </div>
+            <p class="text-sm text-muted">Full access to every module.</p>
+            <div class="chip-group mt-2"><span class="chip">All permissions</span></div>
           </div>
+          <div class="card">
+            <div class="flex items-center gap-2 mb-2">
+              <span class="role-bar role-finance">💰 Finance Admin</span>
+            </div>
+            <p class="text-sm text-muted">Finance, withdrawals, orders.</p>
+            <div class="chip-group mt-2"><span class="chip">Limited</span></div>
+          </div>
+          <div class="card">
+            <div class="flex items-center gap-2 mb-2">
+              <span class="role-bar role-support">🎧 Support Agent</span>
+            </div>
+            <p class="text-sm text-muted">Tickets, users, content.</p>
+            <div class="chip-group mt-2"><span class="chip">Limited</span></div>
+          </div>
+        </div>
 
-          <div class="grid grid-2 mb-4">
-            <div class="card">
-              <div class="card-head"><h3 class="font-black text-md">👤 Grant Admin Access</h3></div>
-              <div class="field"><label>User Email or UID</label><input type="text" class="input" id="grantUid" placeholder="user@email.com or UID"></div>
-              <div class="field"><label>Role</label>
-                <select class="select" id="grantRole">
-                  <option value="admin">Admin</option>
-                  <option value="superadmin">Super Admin</option>
+        <div class="grid grid-2 mb-4">
+          <div class="card">
+            <div class="card-head"><div class="card-title">👤 Grant Admin Access</div></div>
+            <form id="grantAdminForm">
+              <div class="field">
+                <label>User Email or UID</label>
+                <input type="text" class="input" id="grantAdminEmail" placeholder="user@email.com">
+              </div>
+              <div class="field">
+                <label>Role</label>
+                <select class="select" id="grantAdminRole">
+                  <option value="super">Admin</option>
+                  <option value="super">Super Admin</option>
                   <option value="finance">Finance Admin</option>
                   <option value="support">Support Agent</option>
                 </select>
               </div>
-              <button class="btn btn-accent btn-block" id="grantAdminBtn">🔓 Grant Access</button>
-              <div class="form-hint mt-2">Note: Firestore security rules rely on the <b>admin</b> custom claim. Granting via this panel requires the account to already hold the <b>admin</b> claim (set once by the bootstrap script).</div>
-            </div>
-            <div class="card">
-              <div class="card-head"><h3 class="font-black text-md">🚫 Revoke Access</h3></div>
-              <div class="field"><label>User Email or UID</label><input type="text" class="input" id="revokeUid" placeholder="user@email.com or UID"></div>
-              <button class="btn btn-danger btn-block" id="revokeAdminBtn">🔒 Revoke Access</button>
+              <button type="submit" class="btn btn-accent btn-block">🔓 Grant Access</button>
+            </form>
+            <div class="callout mt-3">
+              <span class="co-ico">💡</span>
+              <div class="text-xs">Note: Firestore security rules rely on the admin custom claim. Granting via this panel requires the account to already hold the admin claim (set once by the bootstrap script).</div>
             </div>
           </div>
 
           <div class="card">
-            <div class="card-head"><h3 class="font-black text-md">📋 Admins List</h3></div>
-            <div class="table-wrap" id="adminsTable"></div>
+            <div class="card-head"><div class="card-title">🚫 Revoke Access</div></div>
+            <form id="revokeAdminForm">
+              <div class="field">
+                <label>User Email or UID</label>
+                <input type="text" class="input" id="revokeAdminEmail" placeholder="user@email.com">
+              </div>
+              <button type="submit" class="btn btn-danger btn-block">🔒 Revoke Access</button>
+            </form>
           </div>
-        </section>
+        </div>
 
-        <!-- ============ SECTION: AUDIT LOGS ============ -->
-        <section class="admin-page" id="sec-logs">
-          <div class="ap-head">
-            <h2 class="ap-title">📜 Audit Logs</h2>
-            <div class="ap-sub">Every admin action is recorded for accountability.</div>
+        <div class="card">
+          <div class="card-head"><div class="card-title">📋 Admins List</div></div>
+          <div class="table-wrap">
+            <table class="table datatable">
+              <thead><tr><th>Admin</th><th>Email</th><th>Role</th><th>Last Login</th><th>Actions</th></tr></thead>
+              <tbody id="adminsListBody"></tbody>
+            </table>
           </div>
+        </div>
+      </section>
 
-          <div class="toolbar mb-4">
-            <select class="select" id="logsActionFilter">
-              <option value="all">All Actions</option>
-              <option value="login">Logins</option>
-              <option value="create">Create</option>
-              <option value="update">Update</option>
-              <option value="delete">Delete</option>
-              <option value="approve">Approvals</option>
-              <option value="reject">Rejections</option>
-              <option value="grant">Grant Admin</option>
-              <option value="revoke">Revoke Admin</option>
-              <option value="fraud">Fraud Actions</option>
-            </select>
-            <select class="select" id="logsAdminFilter">
-              <option value="all">All Admins</option>
-            </select>
-            <button class="btn btn-primary" id="exportLogsBtn">⬇️ Export CSV</button>
-          </div>
+      <!-- ============================================================ -->
+      <!-- PAGE: AUDIT LOGS -->
+      <!-- ============================================================ -->
+      <section class="admin-page" id="admin-logs">
+        <div class="page-subhead">
+          <div class="ps-title">📜 Audit Logs</div>
+          <div class="ps-sub">Every admin action is recorded for accountability.</div>
+        </div>
 
-          <div class="card">
-            <div class="table-wrap" id="logsTable"></div>
-            <div class="pagination" id="logsPagination">
-              <button class="page-btn" id="logsPrev" disabled>«</button>
-              <button class="page-btn active" id="logsPageInfo">1</button>
-              <button class="page-btn" id="logsNext" disabled>»</button>
-            </div>
-          </div>
-        </section>
+        <div class="filter-row">
+          <button class="filter-chip active" data-log-action="all">All Actions</button>
+          <button class="filter-chip" data-log-action="login">Logins</button>
+          <button class="filter-chip" data-log-action="create">Create</button>
+          <button class="filter-chip" data-log-action="update">Update</button>
+          <button class="filter-chip" data-log-action="delete">Delete</button>
+          <button class="filter-chip" data-log-action="approve">Approvals</button>
+          <button class="filter-chip" data-log-action="reject">Rejections</button>
+          <button class="filter-chip" data-log-action="grant_admin">Grant Admin</button>
+          <button class="filter-chip" data-log-action="revoke_admin">Revoke Admin</button>
+          <button class="filter-chip" data-log-action="fraud">Fraud Actions</button>
+        </div>
+
+        <div class="toolbar">
+          <select class="select" id="logsAdminFilter" style="max-width:200px">
+            <option value="all">All Admins</option>
+          </select>
+          <button class="btn btn-ghost btn-sm" id="exportLogsBtn">⬇️ Export CSV</button>
+        </div>
+
+        <div class="log-stream" id="auditLogsList"></div>
+        <div class="pagination mt-3" id="logsPagination"></div>
+      </section>
+
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- MODALS -->
+<!-- ============================================================ -->
+
+<!-- Generic Modal -->
+<div class="modal-scrim" id="adminGenericModal">
+  <div class="modal modal-lg">
+    <div class="modal-head">
+      <div class="modal-title" id="adminGenericModalTitle">Details</div>
+      <button class="modal-close" onclick="closeAdminModal('adminGenericModal')">✕</button>
+    </div>
+    <div id="adminGenericModalBody"></div>
+  </div>
+</div>
+
+<!-- Confirm Dialog -->
+<div class="modal-scrim" id="adminConfirmDialog">
+  <div class="modal modal-sm confirm-dialog">
+    <span class="cd-ico" id="adminConfirmIco">⚠️</span>
+    <div class="cd-title" id="adminConfirmTitle">Are you sure?</div>
+    <div class="cd-body" id="adminConfirmBody"></div>
+    <div class="flex gap-2">
+      <button class="btn btn-ghost flex-1" id="adminConfirmCancel">Cancel</button>
+      <button class="btn btn-accent flex-1" id="adminConfirmOk">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- User Details Modal -->
+<div class="modal-scrim" id="userDetailsModal">
+  <div class="modal modal-xl">
+    <div class="modal-head">
+      <div class="modal-title">👤 User Details</div>
+      <button class="modal-close" onclick="closeAdminModal('userDetailsModal')">✕</button>
+    </div>
+    <div id="userDetailsBody"></div>
+  </div>
+</div>
+
+<!-- Offer Editor Modal -->
+<div class="modal-scrim" id="offerEditorModal">
+  <div class="modal modal-lg">
+    <div class="modal-head">
+      <div class="modal-title" id="offerEditorTitle">Create Offer</div>
+      <button class="modal-close" onclick="closeAdminModal('offerEditorModal')">✕</button>
+    </div>
+    <form id="offerEditorForm">
+      <input type="hidden" id="offerEditId">
+      <div class="grid grid-2 gap-3">
+        <div class="field"><label>Title *</label><input type="text" class="input" id="offerEditTitle" required></div>
+        <div class="field"><label>Provider</label><input type="text" class="input" id="offerEditProvider"></div>
+        <div class="field"><label>Category</label><input type="text" class="input" id="offerEditCategory"></div>
+        <div class="field"><label>Difficulty</label>
+          <select class="select" id="offerEditDifficulty">
+            <option>Easy</option><option>Medium</option><option>Hard</option>
+          </select>
+        </div>
+        <div class="field"><label>Payout (coins) *</label><input type="number" class="input" id="offerEditPayout" required></div>
+        <div class="field"><label>Minutes</label><input type="number" class="input" id="offerEditMinutes" value="5"></div>
+        <div class="field"><label>Icon (emoji)</label><input type="text" class="input" id="offerEditIcon" value="🎯"></div>
+        <div class="field"><label>Offer URL</label><input type="url" class="input" id="offerEditLink"></div>
+      </div>
+      <div class="field"><label>Description</label><textarea class="textarea" id="offerEditDesc" rows="3"></textarea></div>
+      <div class="field">
+        <label class="cbx"><input type="checkbox" id="offerEditActive" checked><span class="cbx-box">✓</span><span>Active</span></label>
+      </div>
+      <div class="flex gap-2 mt-3">
+        <button type="submit" class="btn btn-accent flex-1">💾 Save Offer</button>
+        <button type="button" class="btn btn-ghost" onclick="closeAdminModal('offerEditorModal')">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Reward Editor Modal -->
+<div class="modal-scrim" id="rewardEditorModal">
+  <div class="modal modal-lg">
+    <div class="modal-head">
+      <div class="modal-title" id="rewardEditorTitle">Create Reward</div>
+      <button class="modal-close" onclick="closeAdminModal('rewardEditorModal')">✕</button>
+    </div>
+    <form id="rewardEditorForm">
+      <input type="hidden" id="rewardEditId">
+      <div class="grid grid-2 gap-3">
+        <div class="field"><label>Title *</label><input type="text" class="input" id="rewardEditTitle" required></div>
+        <div class="field"><label>Category</label>
+          <select class="select" id="rewardEditCategory">
+            <option>Gift Cards</option><option>Game Top-Up</option><option>Crypto</option><option>PayPal</option><option>Cash</option><option>Mobile Top-Up</option>
+          </select>
+        </div>
+        <div class="field"><label>Icon (emoji)</label><input type="text" class="input" id="rewardEditIcon" value="🎁"></div>
+        <div class="field"><label>Price (coins) *</label><input type="number" class="input" id="rewardEditPrice" required></div>
+        <div class="field"><label>Stock</label><input type="number" class="input" id="rewardEditStock" value="999"></div>
+        <div class="field"><label>Type</label>
+          <select class="select" id="rewardEditType">
+            <option value="reward">Reward</option><option value="topup">Top-Up</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label class="cbx"><input type="checkbox" id="rewardEditActive" checked><span class="cbx-box">✓</span><span>Active</span></label>
+      </div>
+      <div class="flex gap-2 mt-3">
+        <button type="submit" class="btn btn-accent flex-1">💾 Save Reward</button>
+        <button type="button" class="btn btn-ghost" onclick="closeAdminModal('rewardEditorModal')">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Ticket Detail Modal -->
+<div class="modal-scrim" id="ticketDetailModal">
+  <div class="modal modal-lg">
+    <div class="modal-head">
+      <div class="modal-title">🎟️ Ticket Details</div>
+      <button class="modal-close" onclick="closeAdminModal('ticketDetailModal')">✕</button>
+    </div>
+    <div id="ticketDetailBody"></div>
+  </div>
+</div>
+
+<!-- Toast Wrap -->
+<div class="toast-wrap" id="adminToastWrap"></div>
+
+<!-- Chart.js (for admin charts) -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<!-- Admin JS -->
+<script src="admin.js"></script>
+
+</body>
+</html>
