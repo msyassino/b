@@ -6,19 +6,18 @@ if (typeof firebase === 'undefined') {
     alert('خطأ: لم يتم تحميل Firebase. يرجى تحديث الصفحة.');
 }
 
+const auth = firebase.auth();
+const db = firebase.firestore();
+
 // ==========================================
 // 1. Configuration & Constants
 // ==========================================
 const CONFIG = {
     COIN_TO_USD_RATE: 10000,
     MIN_WITHDRAWAL_COINS: 10000,
-    ADMIN_UIDS: ['admin_uid_here'],
+    ADMIN_UIDS: [bxDznYJPD1el1wotLvzTUYynM873],
     SITE_URL: window.location.origin
 };
-
-// Create shortcuts for Firebase services
-const auth = firebase.auth();
-const db = firebase.firestore();
 
 // ==========================================
 // 2. Utility Functions
@@ -44,6 +43,7 @@ function showToast(message, type = 'info') {
     
     setTimeout(() => { toast.remove(); }, 3000);
 }
+
 // ==========================================
 // 3. Authentication Module
 // ==========================================
@@ -76,20 +76,20 @@ authForm.addEventListener('submit', async (e) => {
 
     try {
         if (isLoginMode) {
-            await firebase.auth().signInWithEmailAndPassword(email, password);
+            await auth.signInWithEmailAndPassword(email, password);
             showToast('تم تسجيل الدخول بنجاح', 'success');
         } else {
             const username = document.getElementById('auth-username').value;
             const referralCode = document.getElementById('auth-referral').value;
             
-            const userCredential = await firebase.auth().createUserWithEmailAndPassword(email, password);
+            const userCredential = await auth.createUserWithEmailAndPassword(email, password);
             const uid = userCredential.user.uid;
             
-            const newUserRef = firebase.firestore().collection('users').doc(uid);
+            const newUserRef = db.collection('users').doc(uid);
             
             let referredBy = null;
             if (referralCode) {
-                const refQuery = firebase.firestore().collection('users').where('referralCode', '==', referralCode);
+                const refQuery = db.collection('users').where('referralCode', '==', referralCode);
                 const refSnapshot = await refQuery.get();
                 if (!refSnapshot.empty) {
                     referredBy = refSnapshot.docs[0].id;
@@ -116,8 +116,8 @@ authForm.addEventListener('submit', async (e) => {
                 lastLogin: firebase.firestore.FieldValue.serverTimestamp()
             };
 
-            const newLedgerRef = firebase.firestore().collection('ledger').doc();
-            await firebase.firestore().runTransaction(async (transaction) => {
+            const newLedgerRef = db.collection('ledger').doc();
+            await db.runTransaction(async (transaction) => {
                 transaction.set(newUserRef, userDoc);
                 transaction.set(newLedgerRef, {
                     uid, type: 'system', description: 'إنشاء حساب', amount: 0,
@@ -138,16 +138,16 @@ authForm.addEventListener('submit', async (e) => {
 });
 
 document.getElementById('nav-logout-btn').addEventListener('click', () => {
-    firebase.auth().signOut().then(() => {
+    auth.signOut().then(() => {
         showToast('تم تسجيل الخروج', 'info');
         window.location.reload();
     });
 });
 
-firebase.auth().onAuthStateChanged(async (user) => {
+auth.onAuthStateChanged(async (user) => {
     if (user) {
         currentUser = user;
-        const userDoc = await firebase.firestore().collection('users').doc(user.uid).get();
+        const userDoc = await db.collection('users').doc(user.uid).get();
         if (userDoc.exists) {
             userData = userDoc.data();
             isAdmin = userData.role === 'admin' || CONFIG.ADMIN_UIDS.includes(user.uid);
@@ -171,7 +171,7 @@ firebase.auth().onAuthStateChanged(async (user) => {
             updateWalletUI();
             loadReferralData();
             
-            await firebase.firestore().collection('users').doc(user.uid).update({ 
+            await db.collection('users').doc(user.uid).update({ 
                 lastLogin: firebase.firestore.FieldValue.serverTimestamp() 
             });
         }
@@ -227,11 +227,11 @@ function updateWalletUI() {
 // 5. Wallet & Ledger System
 // ==========================================
 async function addLedgerEntry(uid, type, description, amount) {
-    const userRef = firebase.firestore().collection('users').doc(uid);
-    const ledgerRef = firebase.firestore().collection('ledger').doc();
+    const userRef = db.collection('users').doc(uid);
+    const ledgerRef = db.collection('ledger').doc();
 
     try {
-        await firebase.firestore().runTransaction(async (transaction) => {
+        await db.runTransaction(async (transaction) => {
             const userDoc = await transaction.get(userRef);
             if (!userDoc.exists) throw new Error("User does not exist!");
             
@@ -274,7 +274,7 @@ async function loadLedger() {
     const tbody = document.querySelector('#ledger-table tbody');
     tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;">جاري التحميل...</td></tr>';
     
-    const q = firebase.firestore().collection('ledger')
+    const q = db.collection('ledger')
         .where('uid', '==', currentUser.uid)
         .orderBy('timestamp', 'desc')
         .limit(50);
@@ -349,7 +349,7 @@ async function claimDailyReward() {
     const success = await addLedgerEntry(currentUser.uid, 'daily', `مكافأة يومية - يوم ${newStreak}`, rewardAmount);
     
     if (success) {
-        await firebase.firestore().collection('users').doc(currentUser.uid).update({
+        await db.collection('users').doc(currentUser.uid).update({
             'streak.current': newStreak,
             'streak.lastClaim': firebase.firestore.FieldValue.serverTimestamp()
         });
@@ -374,7 +374,7 @@ document.getElementById('withdraw-form').addEventListener('submit', async (e) =>
         return showToast('رصيدك غير كافٍ لهذا السحب', 'error');
     }
 
-    const recentWithdrawalsQuery = firebase.firestore().collection('withdrawals')
+    const recentWithdrawalsQuery = db.collection('withdrawals')
         .where('uid', '==', currentUser.uid)
         .where('status', '==', 'pending');
     const recentSnap = await recentWithdrawalsQuery.get();
@@ -387,7 +387,7 @@ document.getElementById('withdraw-form').addEventListener('submit', async (e) =>
     const success = await addLedgerEntry(currentUser.uid, 'withdrawal_hold', `طلب سحب معلق: ${method}`, -amount);
     
     if (success) {
-        await firebase.firestore().collection('withdrawals').add({
+        await db.collection('withdrawals').add({
             uid: currentUser.uid,
             username: userData.username,
             method, address,
@@ -458,7 +458,7 @@ window.requestReward = async (rewardId, cost) => {
 
     const success = await addLedgerEntry(currentUser.uid, 'reward_redemption', `استبدال: ${reward.name}`, -cost);
     if (success) {
-        await firebase.firestore().collection('orders').add({
+        await db.collection('orders').add({
             uid: currentUser.uid, username: userData.username,
             rewardId, rewardName: reward.name, costCoins: cost,
             costUSD: cost / CONFIG.COIN_TO_USD_RATE,
@@ -475,10 +475,10 @@ window.requestReward = async (rewardId, cost) => {
 async function loadAdminDashboard() {
     if (!isAdmin) return;
     
-    const usersSnap = await firebase.firestore().collection('users').get();
+    const usersSnap = await db.collection('users').get();
     document.getElementById('adm-total-users').textContent = usersSnap.size;
     
-    const wQuery = firebase.firestore().collection('withdrawals').where('status', '==', 'pending');
+    const wQuery = db.collection('withdrawals').where('status', '==', 'pending');
     const wSnap = await wQuery.get();
     const wTable = document.querySelector('#admin-withdrawals-table tbody');
     wTable.innerHTML = '';
@@ -517,18 +517,18 @@ document.querySelectorAll('.admin-tab').forEach(tab => {
 window.processWithdrawal = async (withdrawalId, action) => {
     if (!confirm(`هل أنت متأكد من ${action === 'approved' ? 'موافقة' : 'رفض'} هذا الطلب؟`)) return;
     
-    const wRef = firebase.firestore().collection('withdrawals').doc(withdrawalId);
+    const wRef = db.collection('withdrawals').doc(withdrawalId);
     const wDoc = await wRef.get();
     if (!wDoc.exists) return;
     const wData = wDoc.data();
     
-    await firebase.firestore().runTransaction(async (transaction) => {
+    await db.runTransaction(async (transaction) => {
         if (action === 'approved') {
             transaction.update(wRef, { 
                 status: 'approved', 
                 processedAt: firebase.firestore.FieldValue.serverTimestamp() 
             });
-            await firebase.firestore().collection('admin_logs').add({
+            await db.collection('admin_logs').add({
                 action: 'withdrawal_approved', targetId: withdrawalId,
                 adminUid: currentUser.uid, timestamp: firebase.firestore.FieldValue.serverTimestamp()
             });
@@ -538,7 +538,7 @@ window.processWithdrawal = async (withdrawalId, action) => {
                 status: 'rejected', 
                 processedAt: firebase.firestore.FieldValue.serverTimestamp() 
             });
-            const userRef = firebase.firestore().collection('users').doc(wData.uid);
+            const userRef = db.collection('users').doc(wData.uid);
             const userDoc = await transaction.get(userRef);
             const currentCoins = userDoc.data().coins;
             
@@ -546,7 +546,7 @@ window.processWithdrawal = async (withdrawalId, action) => {
                 'coins.available': currentCoins.available + wData.amountCoins
             });
             
-            await firebase.firestore().collection('ledger').add({
+            await db.collection('ledger').add({
                 uid: wData.uid, type: 'withdrawal_refund',
                 description: `استرداد بسبب رفض السحب: ${wData.method}`,
                 amount: wData.amountCoins,
@@ -582,7 +582,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 document.getElementById('support-form').addEventListener('submit', async (e) => {
     e.preventDefault();
-    await firebase.firestore().collection('support_tickets').add({
+    await db.collection('support_tickets').add({
         uid: currentUser.uid, username: userData.username,
         category: document.getElementById('support-category').value,
         message: document.getElementById('support-message').value,
