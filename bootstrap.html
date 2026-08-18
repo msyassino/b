@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Rewords - Bootstrap Tool</title>
+<style>
+body { font-family: 'Poppins', sans-serif; background: #0a0e1a; color: #fff; padding: 40px; max-width: 900px; margin: 0 auto; }
+h1 { color: #2575fc; }
+h2 { color: #00d4ff; margin-top: 40px; border-bottom: 1px solid #2575fc; padding-bottom: 10px; }
+.btn { background: linear-gradient(135deg, #6a11cb, #2575fc); color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-size: 16px; margin: 8px 4px; font-weight: 700; }
+.btn:hover { opacity: 0.9; transform: translateY(-2px); }
+.btn-success { background: linear-gradient(135deg, #00e676, #009688); }
+.btn-warning { background: linear-gradient(135deg, #ff6a00, #ffb800); }
+.btn-danger { background: linear-gradient(135deg, #ff3d71, #ff6b6b); }
+.status { padding: 15px; margin: 10px 0; border-radius: 8px; font-family: monospace; white-space: pre-wrap; max-height: 300px; overflow-y: auto; }
+.status.ok { background: rgba(0, 230, 118, 0.15); border-left: 4px solid #00e676; }
+.status.err { background: rgba(255, 61, 113, 0.15); border-left: 4px solid #ff3d71; }
+.status.info { background: rgba(37, 132, 235, 0.15); border-left: 4px solid #2575fc; }
+.card { background: #101527; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 20px; margin: 15px 0; }
+input { background: #161d36; border: 1px solid #2575fc; color: white; padding: 10px; border-radius: 6px; width: 300px; margin: 4px; }
+.warn { background: rgba(255, 193, 7, 0.15); border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; border-radius: 8px; }
+</style>
+</head>
+<body>
+
+<h1>🚀 Rewords Bootstrap Tool</h1>
+<p>أداة لإعداد قاعدة بيانات المشروع وإنشاء حساب الأدمن</p>
+
+<div class="warn">
+⚠️ <strong>تحذير:</strong> شغّل هذه الأداة مرة واحدة فقط! احذف هذا الملف بعد الإعداد لأسباب أمنية.
+</div>
+
+<!-- ===== STEP 1: Firebase SDKs ===== -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+<script>
+// ============== FIREBASE CONFIG ==============
+const firebaseConfig = {
+  apiKey: "AIzaSyBPMbRdVEJ85Is7eg4UkAFs_UHq-BD_Fhg",
+  authDomain: "rewords-45ccf.firebaseapp.com",
+  projectId: "rewords-45ccf",
+  storageBucket: "rewords-45ccf.firebasestorage.app",
+  messagingSenderId: "324257034049",
+  appId: "1:324257034049:web:2e75279382793007683bc0",
+  measurementId: "G-5LNDESBVST"
+};
+
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+function log(msg, type = 'info') {
+  const div = document.createElement('div');
+  div.className = 'status ' + type;
+  div.textContent = msg;
+  document.getElementById('logArea').appendChild(div);
+  console.log('[' + type + ']', msg);
+}
+
+// ============== STEP 1: CREATE ADMIN ==============
+async function createAdmin() {
+  const email = document.getElementById('adminEmail').value;
+  const password = document.getElementById('adminPass').value;
+  
+  if (!email || !password) {
+    log('❌ أدخل البريد وكلمة المرور', 'err');
+    return;
+  }
+  
+  log('🔄 إنشاء حساب الأدمن...', 'info');
+  
+  try {
+    // Try sign in first
+    let cred;
+    try {
+      cred = await auth.signInWithEmailAndPassword(email, password);
+      log('✅ الحساب موجود مسبقًا', 'ok');
+    } catch (e) {
+      // Create new account
+      cred = await auth.createUserWithEmailAndPassword(email, password);
+      log('✅ تم إنشاء الحساب: ' + email, 'ok');
+    }
+    
+    const user = cred.user;
+    
+    // Add to admin_users collection
+    await db.collection('admin_users').doc(user.uid).set({
+      email: email,
+      role: 'super',
+      permissions: ['*'],
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      createdBy: 'bootstrap'
+    });
+    
+    log('✅ تم إضافة الأدمن إلى collection: admin_users', 'ok');
+    log('📋 Admin UID: ' + user.uid, 'info');
+    
+    // ==========================================
+    // ⚠️ ملاحظة مهمة جداً ⚠️
+    // ==========================================
+    log('', 'info');
+    log('═══════════════════════════════════════════════', 'info');
+    log('⚠️  الخطوة التالية مهمة جدًا!', 'info');
+    log('', 'info');
+    log('لتفعيل صلاحيات الأدمن، تحتاج تشغيل هذا الكود في:', 'info');
+    log('Firebase Console → Authentication → Users', 'info');
+    log('ثم افتح Console المتصفح (F12) والصق هذا الكود:', 'info');
+    log('', 'info');
+    log('   const uid = "' + user.uid + '";', 'info');
+    log('   firebase.auth().currentUser.getIdTokenResult()', 'info');
+    log('', 'info');
+    log('لكن الأسهل: شغّل الكود التالي في Node.js أو Cloud Function:', 'info');
+    log('', 'info');
+    log('--- كود Node.js لإضافة admin claim ---', 'info');
+    log(`
+const admin = require('firebase-admin');
+admin.initializeApp({
+  credential: admin.credential.cert(require('./serviceAccount.json'))
+});
+admin.auth().setCustomUserClaims('${user.uid}', { 
+  admin: true, 
+  adminRole: 'super' 
+}).then(() => {
+  console.log('✅ Admin claims set!');
+});
+`, 'info');
+    log('═══════════════════════════════════════════════', 'info');
+    
+  } catch (err) {
+    log('❌ خطأ: ' + err.message, 'err');
+  }
+}
+
+// ============== STEP 2: SEED DATA ==============
+async function seedAllData() {
+  log('🌱 بدء ملء البيانات...', 'info');
+  
+  try {
+    // ========== SETTINGS ==========
+    await db.collection('settings').doc('global').set({
+      coinRate: 10000,
+      minWithdraw: 10000,
+      signupBonus: 100,
+      adReward: 120,
+      adDailyCap: 15,
+      withdrawalFeePct: 1,
+      referralPercent: 10,
+      maintenance: false,
+      siteUrl: location.origin,
+      supportEmail: 'support@rewords.com',
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    log('✅ Settings created', 'ok');
+    
+    // ========== PROVIDERS ==========
+    const providers = [
+      { id: 'freecash', name: 'Freecash', active: true, type: 'affiliate', revenue: 0, conversions: 0 },
+      { id: 'lootably', name: 'Lootably', active: true, type: 'offerwall', revenue: 0, conversions: 0 },
+      { id: 'adgate', name: 'AdGate Media', active: true, type: 'offerwall', revenue: 0, conversions: 0 },
+      { id: 'offertoro', name: 'OfferToro', active: true, type: 'offerwall', revenue: 0, conversions: 0 },
+      { id: 'adsterra', name: 'Adsterra', active: true, type: 'adnetwork', revenue: 0, conversions: 0 },
+      { id: 'monetag', name: 'Monetag', active: true, type: 'adnetwork', revenue: 0, conversions: 0 }
+    ];
+    
+    for (const p of providers) {
+      await db.collection('providers').doc(p.id).set({
+        ...p,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    }
+    log('✅ ' + providers.length + ' providers created', 'ok');
+    
+    // ========== OFFERS ==========
+    const offers = [
+      {
+        title: 'Install & Play Clash Royale',
+        description: 'Download Clash Royale and reach Arena 5 within 7 days to earn your reward.',
+        provider: 'Freecash',
+        category: 'Games',
+        payout: 2500,
+        difficulty: 'Medium',
+        minutes: 30,
+        icon: '⚔️',
+        color: 'linear-gradient(135deg, #ff6a00, #ffb800)',
+        link: 'https://freecash.com/r/34GRD6',
+        active: true,
+        featured: true,
+        devices: ['Android', 'iOS'],
+        countries: ['Worldwide'],
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      },
+      {
+        title: 'Complete Survey - Shopping Habits',
+        description: 'Share your shopping preferences in this 10-minute survey.',
+        provider: 'Lootably',
+        category: 'Surveys',
+        payout: 850,
+        difficulty: 'Easy',
+        minutes: 10,
+        icon: '📋',
+        color: 'linear-gradient(135deg, #6a11cb, #2575fc)',
+        active: true,
+        featured: true,
+        devices: ['All'],
+        countries: ['Worldwide'],
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      },
+      {
+        title: 'Sign Up for Newsletter',
+        description: 'Subscribe to our partner newsletter and confirm your email.',
+        provider: 'AdGate',
+        category: 'Signups',
+        payout: 250,
+        difficulty: 'Easy',
+        minutes: 2,
+        icon: '📧',
+        color: 'linear-gradient(135deg, #00e676, #009688)',
+        active: true,
+        devices: ['Web'],
+        countries: ['Worldwide'],
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      },
+      {
+        title: 'Try Free Trial - Streaming App',
+        description: 'Sign up for a 7-day free trial of our premium streaming service.',
+        provider: 'OfferToro',
+        category: 'Free Trials',
+        payout: 1500,
+        difficulty: 'Medium',
+        minutes: 5,
+        icon: '🎬',
+        color: 'linear-gradient(135deg, #fc466b, #3f5efb)',
+        active: true,
+        devices: ['All'],
+        countries: ['US', 'UK', 'CA'],
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      },
+      {
+        title: 'Download TikTok & Watch Videos',
+        description: 'Install TikTok, create account, and watch 10 videos.',
+        provider: 'Freecash',
+        category: 'Apps',
+        payout: 1800,
+        difficulty: 'Easy',
+        minutes: 15,
+        icon: '📱',
+        color: 'linear-gradient(135deg, #667eea, #764ba2)',
+        active: true,
+        featured: true,
+        devices: ['Android', 'iOS'],
+        countries: ['Worldwide'],
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      },
+      {
+        title: 'Bank Account Registration',
+        description: 'Open a free digital bank account with our partner.',
+        provider: 'Lootably',
+        category: 'Finance',
+        payout: 5000,
+        difficulty: 'Hard',
+        minutes: 20,
+        icon: '🏦',
+        color: 'linear-gradient(135deg, #11998e, #38ef7d)',
+        active: true,
+        devices: ['All'],
+        countries: ['US', 'UK'],
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      },
+      {
+        title: 'Play Solitaire - Reach Level 20',
+        description: 'Download Solitaire Grand and reach level 20 within 14 days.',
+        provider: 'Freecash',
+        category: 'Games',
+        payout: 8500,
+        difficulty: 'Hard',
+        minutes: 120,
+        icon: '🃏',
+        color: 'linear-gradient(135deg, #f5af19, #f12711)',
+        active: true,
+        featured: true,
+        devices: ['Android', 'iOS'],
+        countries: ['Worldwide'],
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      },
+      {
+        title: 'Install Instagram & Follow 5 Accounts',
+        description: 'Install Instagram, create profile, follow 5 suggested accounts.',
+        provider: 'AdGate',
+        category: 'Social',
+        payout: 600,
+        difficulty: 'Easy',
+        minutes: 5,
+        icon: '📷',
+        color: 'linear-gradient(135deg, #f09433, #e6683c, #dc2743)',
+        active: true,
+        devices: ['Android', 'iOS'],
+        countries: ['Worldwide'],
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      }
+    ];
+    
+    for (const offer of offers) {
+      await db.collection('offers').add(offer);
+    }
+    log('✅ ' + offers.length + ' offers created', 'ok');
+    
+    // ========== GAMES ==========
+    const games = [
+      {
+        title: 'Free Fire',
+        description: 'Reach Level 20 and earn up to 10,000 coins!',
+        icon: '🔥',
+        color: 'linear-gradient(135deg, #ff6a00, #ffb800)',
+        platform: 'Android & iOS',
+        category: 'Battle Royale',
+        rating: 4.8,
+        installs: 1250000,
+        trending: true,
+        active: true,
+        link: 'https://freecash.com/r/34GRD6',
+        milestones: [
+          { icon: '📥', label: 'Install', reward: 100 },
+          { icon: '🎯', label: 'Level 5', reward: 500 },
+          { icon: '🎯', label: 'Level 10', reward: 2000 },
+          { icon: '🎯', label: 'Level 20', reward: 7400 }
+        ],
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      },
+      {
+        title: 'PUBG Mobile',
+        description: 'Play and reach Tier Gold for big rewards.',
+        icon: '🍗',
+        color: 'linear-gradient(135deg, #f5af19, #f12711)',
+        platform: 'Android & iOS',
+        category: 'Battle Royale',
+        rating: 4.7,
+        installs: 980000,
+        trending: true,
+        active: true,
+        link: 'https://freecash.com/r/34GRD6',
+        milestones: [
+          { icon: '📥', label: 'Install', reward: 150 },
+          { icon: '🎯', label: 'Level 10', reward: 800 },
+          { icon: '🎯', label: 'Level 25', reward: 3000 },
+          { icon: '🏆', label: 'Tier Gold', reward: 4550 }
+        ],
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      },
+      {
+        title: 'Roblox',
+        description: 'Create account and play popular games.',
+        icon: '🧱',
+        color: 'linear-gradient(135deg, #ff3d71, #ff6b6b)',
+        platform: 'All Platforms',
+        category: 'Sandbox',
+        rating: 4.6,
+        installs: 750000,
+        active: true,
+        link: 'https://freecash.com/r/34GRD6',
+        milestones: [
+          { icon: '📥', label: 'Install', reward: 200 },
+          { icon: '🎯', label: 'Play 1 hour', reward: 1500 },
+          { icon: '🎯', label: 'Play 5 hours', reward: 5300 }
+        ],
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      },
+      {
+        title: 'Clash of Clans',
+        description: 'Reach Town Hall 10 for massive rewards.',
+        icon: '⚔️',
+        color: 'linear-gradient(135deg, #6a11cb, #2575fc)',
+        platform: 'Android & iOS',
+        category: 'Strategy',
+        rating: 4.9,
+        installs: 1500000,
+        trending: true,
+        active: true,
+        link: 'https://freecash.com/r/34GRD6',
+        milestones: [
+          { icon: '📥', label: 'Install', reward: 100 },
+          { icon: '🏰', label: 'Town Hall 5', reward: 1500 },
+          { icon: '🏰', label: 'Town Hall 8', reward: 4000 },
+          { icon: '🏰', label: 'Town Hall 10', reward: 900 }
+        ],
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      },
+      {
+        title: 'Valorant',
+        description: 'Reach level 20 in Valorant.',
+        icon: '🎯',
+        color: 'linear-gradient(135deg, #fc466b, #3f5efb)',
+        platform: 'PC',
+        category: 'FPS',
+        rating: 4.7,
+        installs: 620000,
+        active: true,
+        link: 'https://freecash.com/r/34GRD6',
+        milestones: [
+          { icon: '📥', label: 'Install', reward: 250 },
+          { icon: '🎯', label: 'Level 10', reward: 2000 },
+          { icon: '🎯', label: 'Level 20', reward: 2750 }
+        ],
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      },
+      {
+        title: 'Mobile Legends',
+        description: 'Reach Mythic rank for big rewards.',
+        icon: '⚔️',
+        color: 'linear-gradient(135deg, #667eea, #764ba2)',
+        platform: 'Android & iOS',
+        category: 'MOBA',
+        rating: 4.5,
+        installs: 890000,
+        active: true,
+        link: 'https://freecash.com/r/34GRD6',
+        milestones: [
+          { icon: '📥', label: 'Install', reward: 150 },
+          { icon: '🎯', label: 'Level 15', reward: 2500 },
+          { icon: '🏆', label: 'Mythic', reward: 2850 }
+        ],
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      }
+    ];
+    
+    for (const game of games) {
+      await db.collection('games').add(game);
+    }
+    log('✅ ' + games.length + ' games created', 'ok');
+    
+    // ========== SURVEYS ==========
+    const surveys = [
+      {
+        title: 'Market Research Survey',
+        description: 'Share your opinions on consumer products.',
+        category: 'Market Research',
+        reward: 850,
+        minutes: 15,
+        rating: 4.5,
+        slotsLeft: 42,
+        active: true,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      },
+      {
+        title: 'Gaming Habits Survey',
+        description: 'Tell us about your gaming preferences.',
+        category: 'Gaming',
+        reward: 650,
+        minutes: 10,
+        rating: 4.7,
+        slotsLeft: 78,
+        active: true,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      },
+      {
+        title: 'Shopping Behavior Study',
+        description: 'Help us understand online shopping trends.',
+        category: 'Shopping',
+        reward: 1200,
+        minutes: 20,
+        rating: 4.3,
+        slotsLeft: 25,
+        active: true,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      },
+      {
+        title: 'Technology Usage Survey',
+        description: 'Share your tech usage patterns.',
+        category: 'Technology',
+        reward: 950,
+        minutes: 12,
+        rating: 4.6,
+        slotsLeft: 55,
+        active: true,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      }
+    ];
+    
+    for (const survey of surveys) {
+      await db.collection('surveys').add(survey);
+    }
+    log('✅ ' + surveys.length + ' surveys created', 'ok');
+    
+    // ========== REWARDS ==========
+    const rewards = [
+      // Gift Cards
+      { title: 'Google Play Gift Card', category: 'Gift Cards', icon: '🟢', color: 'linear-gradient(135deg, #00e676, #009688)', price: 250000, stock: 50, active: true, denominations: [{ label: '$25', cost: 250000 }] },
+      { title: 'Apple Gift Card', category: 'Gift Cards', icon: '🖤', color: 'linear-gradient(135deg, #333, #000)', price: 250000, stock: 45, active: true, denominations: [{ label: '$25', cost: 250000 }] },
+      { title: 'Steam Wallet', category: 'Gift Cards', icon: '🔷', color: 'linear-gradient(135deg, #1b2838, #2a475e)', price: 200000, stock: 60, active: true, denominations: [{ label: '$20', cost: 200000 }] },
+      { title: 'Amazon Gift Card', category: 'Gift Cards', icon: '📦', color: 'linear-gradient(135deg, #ff9900, #ffb800)', price: 250000, stock: 40, active: true, denominations: [{ label: '$25', cost: 250000 }] },
+      { title: 'Netflix Gift Card', category: 'Gift Cards', icon: '🎬', color: 'linear-gradient(135deg, #e50914, #b20710)', price: 300000, stock: 30, active: true, denominations: [{ label: '$30', cost: 300000 }] },
+      
+      // Crypto
+      { title: 'Bitcoin', category: 'Crypto', icon: '₿', color: 'linear-gradient(135deg, #f7931a, #ffb800)', price: 250000, stock: 999, active: true },
+      { title: 'Ethereum', category: 'Crypto', icon: 'Ξ', color: 'linear-gradient(135deg, #627eea, #3c3c3d)', price: 150000, stock: 999, active: true },
+      { title: 'Tether (USDT)', category: 'Crypto', icon: '₮', color: 'linear-gradient(135deg, #26a17b, #50af95)', price: 100000, stock: 999, active: true },
+      { title: 'Tron (TRX)', category: 'Crypto', icon: '◎', color: 'linear-gradient(135deg, #ff0013, #cc000f)', price: 50000, stock: 999, active: true },
+      
+      // Game Top-Up
+      { 
+        title: 'Free Fire', 
+        category: 'Game Top-Up', 
+        type: 'topup',
+        icon: '🔥', 
+        color: 'linear-gradient(135deg, #ff6a00, #ffb800)', 
+        price: 4500, 
+        stock: 999, 
+        active: true,
+        packages: [
+          { label: '100 Diamonds', cost: 4500 },
+          { label: '310 Diamonds', cost: 12000, save: '-10%' },
+          { label: '520 Diamonds', cost: 18000, save: '-15%' },
+          { label: '1060 Diamonds', cost: 32000, save: '-20%' }
+        ]
+      },
+      { 
+        title: 'PUBG Mobile', 
+        category: 'Game Top-Up', 
+        type: 'topup',
+        icon: '🍗', 
+        color: 'linear-gradient(135deg, #f5af19, #f12711)', 
+        price: 5000, 
+        stock: 999, 
+        active: true,
+        packages: [
+          { label: '60 UC', cost: 5000 },
+          { label: '325 UC', cost: 22000 },
+          { label: '660 UC', cost: 40000 }
+        ]
+      },
+      { 
+        title: 'Roblox', 
+        category: 'Game Top-Up', 
+        type: 'topup',
+        icon: '🧱', 
+        color: 'linear-gradient(135deg, #ff3d71, #ff6b6b)', 
+        price: 4000, 
+        stock: 999, 
+        active: true,
+        packages: [
+          { label: '80 Robux', cost: 4000 },
+          { label: '400 Robux', cost: 18000 },
+          { label: '800 Robux', cost: 32000 }
+        ]
+      },
+      { 
+        title: 'Clash of Clans', 
+        category: 'Game Top-Up', 
+        type: 'topup',
+        icon: '⚔️', 
+        color: 'linear-gradient(135deg, #6a11cb, #2575fc)', 
+        price: 4500, 
+        stock: 999, 
+        active: true,
+        packages: [
+          { label: '500 Gems', cost: 4500 },
+          { label: '1200 Gems', cost: 9000 },
+          { label: '2500 Gems', cost: 16000 }
+        ]
+      },
+      { 
+        title: 'Valorant', 
+        category: 'Game Top-Up', 
+        type: 'topup',
+        icon: '🎯', 
+        color: 'linear-gradient(135deg, #fc466b, #3f5efb)', 
+        price: 5000, 
+        stock: 999, 
+        active: true,
+        packages: [
+          { label: '475 VP', cost: 5000 },
+          { label: '1000 VP', cost: 10000 },
+          { label: '2050 VP', cost: 19000 }
+        ]
+      },
+      { 
+        title: 'Mobile Legends', 
+        category: 'Game Top-Up', 
+        type: 'topup',
+        icon: '⚔️', 
+        color: 'linear-gradient(135deg, #667eea, #764ba2)', 
+        price: 3500, 
+        stock: 999, 
+        active: true,
+        packages: [
+          { label: '56 Diamonds', cost: 3500 },
+          { label: '172 Diamonds', cost: 10000 },
+          { label: '344 Diamonds', cost: 19000 }
+        ]
+      }
+    ];
+    
+    for (const reward of rewards) {
+      await db.collection('rewards').add(reward);
+    }
+    log('✅ ' + rewards.length + ' rewards created', 'ok');
+    
+    // ========== FAQS ==========
+    const faqs = [
+      { q: 'How do I earn coins?', a: 'You can earn coins by completing offers from our offerwall partners, playing games and reaching milestones, taking surveys, watching rewarded video ads, claiming your daily reward, keeping your streak alive, and inviting friends through your referral link.', order: 1 },
+      { q: 'How do I withdraw my earnings?', a: 'Go to the Withdraw page, choose your preferred payment method, enter your details, and confirm. Your request is reviewed for security and typically processed within 24-72 hours.', order: 2 },
+      { q: 'Why are some coins pending?', a: 'Coins earned from offers become pending until the offerwall confirms the conversion. This protects the platform and your rewards from fraudulent activity. Pending coins are usually confirmed within a few minutes to 24 hours.', order: 3 },
+      { q: 'Which games can I play?', a: 'We feature a wide range of games from top developers including Free Fire, PUBG, Roblox, Clash of Clans, Mobile Legends, FC Mobile and many more. Each game offers milestone rewards for reaching certain levels.', order: 4 },
+      { q: 'Is it safe to use Rewords?', a: 'Yes. We use industry-standard encryption, strict anti-fraud detection, email and phone verification, and we never store your payment card details. We only work with trusted, verified offerwall and ad partners.', order: 5 },
+      { q: 'How does the referral program work?', a: 'Share your unique referral link or code. When a friend joins using your link and completes their first offer, you both earn bonus coins. You\'ll also earn 10% of the coins your referrals earn forever.', order: 6 }
+    ];
+    
+    for (const faq of faqs) {
+      await db.collection('faqs').add(faq);
+    }
+    log('✅ ' + faqs.length + ' FAQs created', 'ok');
+    
+    // ========== EVENTS ==========
+    const events = [
+      {
+        title: 'Double Coins Weekend',
+        subtitle: 'Earn 2x coins on all offers this weekend!',
+        icon: '⚡',
+        color: 'linear-gradient(135deg, #ff6a00, #ffb800)',
+        status: 'active',
+        reward: 0,
+        multiplier: 2,
+        startsAt: 'Today',
+        endsAt: 'In 2 days',
+        active: true,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      },
+      {
+        title: 'Game Marathon',
+        subtitle: 'Earn 20% extra on all game offers.',
+        icon: '🎮',
+        color: 'linear-gradient(135deg, #6a11cb, #2575fc)',
+        status: 'active',
+        reward: 0,
+        bonusPercent: 20,
+        startsAt: 'Now',
+        endsAt: 'In 5 days',
+        active: true,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      },
+      {
+        title: 'Referral Rush',
+        subtitle: 'Triple referral bonuses for one week.',
+        icon: '👥',
+        color: 'linear-gradient(135deg, #00e676, #009688)',
+        status: 'upcoming',
+        reward: 0,
+        multiplier: 3,
+        startsAt: 'In 7 days',
+        active: true,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      },
+      {
+        title: 'Survey Bonanza',
+        subtitle: 'Earn 50% more on all surveys.',
+        icon: '📋',
+        color: 'linear-gradient(135deg, #fc466b, #3f5efb)',
+        status: 'upcoming',
+        reward: 0,
+        bonusPercent: 50,
+        startsAt: 'In 10 days',
+        active: true,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      }
+    ];
+    
+    for (const event of events) {
+      await db.collection('events').add(event);
+    }
+    log('✅ ' + events.length + ' events created', 'ok');
+    
+    // ========== PROMOS ==========
+    const promos = [
+      { code: 'WELCOME2026', title: 'Welcome Bonus', description: '+500 bonus coins for new users!', reward: 500, active: true, createdAt: firebase.firestore.FieldValue.serverTimestamp() },
+      { code: 'DOUBLE100', title: 'Double Boost', description: '+1000 coins bonus', reward: 1000, active: true, createdAt: firebase.firestore.FieldValue.serverTimestamp() },
+      { code: 'MEGA500', title: 'Mega Reward', description: '+500 coins instantly', reward: 500, active: true, createdAt: firebase.firestore.FieldValue.serverTimestamp() }
+    ];
+    
+    for (const promo of promos) {
+      await db.collection('promos').add(promo);
+    }
+    log('✅ ' + promos.length + ' promo codes created', 'ok');
+    
+    // ========== POSTS (BLOG) ==========
+    const posts = [
+      { title: '10 Ways to Earn More Coins', icon: '💡', category: 'Tips', content: 'Discover the top strategies to maximize your earnings on Rewords...', createdAt: firebase.firestore.FieldValue.serverTimestamp() },
+      { title: 'New Games Added This Week', icon: '🎮', category: 'Update', content: 'Check out the latest games added to our platform...', createdAt: firebase.firestore.FieldValue.serverTimestamp() },
+      { title: 'How Withdrawals Work', icon: '💵', category: 'Guide', content: 'Step-by-step guide on how withdrawals are processed...', createdAt: firebase.firestore.FieldValue.serverTimestamp() },
+      { title: 'Double Coins Event This Weekend', icon: '⚡', category: 'News', content: 'Join our double coins weekend event...', createdAt: firebase.firestore.FieldValue.serverTimestamp() }
+    ];
+    
+    for (const post of posts) {
+      await db.collection('posts').add(post);
+    }
+    log('✅ ' + posts.length + ' blog posts created', 'ok');
+    
+    log('', 'ok');
+    log('═══════════════════════════════════════════════', 'ok');
+    log('🎉 تم ملء جميع البيانات بنجاح!', 'ok');
+    log('═══════════════════════════════════════════════', 'ok');
+    log('', 'info');
+    log('⚠️  تذكر: تحتاج إضافة admin custom claim للحساب!', 'info');
+    log('راجع الكود أعلاه للتعليمات.', 'info');
+    
+  } catch (err) {
+    log('❌ خطأ: ' + err.message, 'err');
+    console.error(err);
+  }
+}
+
+// ============== STEP 3: ADD ADMIN CLAIM (via Cloud Function simulation) ==============
+async function addAdminClaim() {
+  log('', 'info');
+  log('⚠️ لإضافة admin claim تحتاج:', 'info');
+  log('1. Firebase CLI مثبت على جهازك', 'info');
+  log('2. Cloud Function أو استخدام Firebase Admin SDK', 'info');
+  log('', 'info');
+  log('أسهل طريقة: استخدم Firebase Console Functions', 'info');
+  log('أو شغّل هذا السكريبت في Node.js:', 'info');
+  log('', 'info');
+  log(`
+// admin-claim.js
+const admin = require('firebase-admin');
+const serviceAccount = require('./serviceAccount.json');
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount)
+});
+
+const email = 'kenven@admin.com';
+
+admin.auth().getUserByEmail(email)
+  .then((user) => {
+    return admin.auth().setCustomUserClaims(user.uid, {
+      admin: true,
+      adminRole: 'super'
+    });
+  })
+  .then(() => {
+    console.log('✅ Admin claims set successfully!');
+    console.log('User needs to sign out and sign in again for claims to take effect.');
+  })
+  .catch(console.error);
+`, 'info');
+}
+</script>
+
+<h2>🔐 Step 1: Create Admin Account</h2>
+<div class="card">
+  <label>Email: </label>
+  <input type="email" id="adminEmail" value="kenven@admin.com" /><br/>
+  <label>Password: </label>
+  <input type="password" id="adminPass" value="kenven@admin" /><br/>
+  <button class="btn btn-success" onclick="createAdmin()">🔐 Create Admin</button>
+</div>
+
+<h2>🌱 Step 2: Seed All Data</h2>
+<div class="card">
+  <p>هذا سيملأ: Settings, Providers, Offers, Games, Surveys, Rewards, FAQs, Events, Promos, Posts</p>
+  <button class="btn btn-warning" onclick="seedAllData()">🌱 Seed All Data</button>
+</div>
+
+<h2>👑 Step 3: Add Admin Claim (مهم جداً)</h2>
+<div class="card">
+  <p>لا يمكن إضافة admin claim من المتصفح مباشرة (لأسباب أمنية). استخدم الكود المعروض في الـ log.</p>
+  <button class="btn" onclick="addAdminClaim()">📋 Show Instructions</button>
+</div>
+
+<h2>📋 Log Output</h2>
+<div id="logArea"></div>
+
+<h2>📝 ملاحظات مهمة</h2>
+<div class="card">
+  <ol>
+    <li><strong>بعد إنشاء الأدمن:</strong> يجب تسجيل الخروج والدخول مرة أخرى لتفعيل الصلاحيات</li>
+    <li><strong>admin claim:</strong> يجب إضافتها باستخدام Firebase Admin SDK (لا يمكن من المتصفح)</li>
+    <li><strong>Firestore Rules:</strong> ضع القواعد أعلاه في Firebase Console → Firestore → Rules</li>
+    <li><strong>بعد الإعداد:</strong> احذف ملف bootstrap.html لأسباب أمنية</li>
+  </ol>
+</div>
+
+<h2>🔥 الطريقة الأسهل لإضافة Admin Claim</h2>
+<div class="card">
+  <p><strong>استخدم Firebase Console Functions playground:</strong></p>
+  <ol>
+    <li>اذهب إلى Firebase Console → Functions</li>
+    <li>أنشئ function جديدة اسمها <code>setAdmin</code></li>
+    <li>انسخ هذا الكود:</li>
+  </ol>
+  <pre style="background:#0d1220; padding:15px; border-radius:8px; overflow-x:auto; color:#9ef01a;">
+exports.setAdmin = functions.https.onCall(async (data, context) => {
+  const email = data.email;
+  const role = data.role || 'super';
+  
+  try {
+    const user = await admin.auth().getUserByEmail(email);
+    await admin.auth().setCustomUserClaims(user.uid, {
+      admin: true,
+      adminRole: role
+    });
+    return { success: true, uid: user.uid };
+  } catch (error) {
+    return { error: error.message };
+  }
+});</pre>
+  <p>ثم استدعِ الدالة من المتصفح بعد deploy.</p>
+</div>
+
+</body>
+</html>
