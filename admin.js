@@ -1,6 +1,6 @@
 /* ============================================================================
-   REWORDS ADMIN — admin.js (FINAL FIXED BUILD)
-   Direct login (kenven@admin.com / admin123), auto-bootstrap, full CRUD,
+   REWORDS ADMIN — admin.js (SECURE CLIENT BUILD)
+   Firebase Auth login + server-provisioned admin authorization.
    real stats from Firestore, seed data, audit logs, backup export.
 ============================================================================ */
 var FIREBASE_CONFIG = {
@@ -22,7 +22,7 @@ try {
 var serverTimestamp = function () { return firebase.firestore.FieldValue.serverTimestamp(); };
 var increment = function (n) { return firebase.firestore.FieldValue.increment(n || 1); };
 
-var ADMIN_EMAIL = 'kenven@admin.com';
+var ADMIN_EMAIL = '';
 var A = {
   user: null, isAdmin: false, role: 'super', page: 'dashboard',
   users: [], offers: [], games: [], surveys: [], rewards: [], providers: [],
@@ -91,56 +91,49 @@ function downloadJSON(name, obj) {
   a.href = URL.createObjectURL(blob); a.download = name + '.json'; a.click();
 }
 
-/* ---------------- AUTH (direct login + auto-bootstrap) ---------------- */
+/* ---------------- AUTH (Firebase Auth + server-provisioned admin) ---------------- */
 function initAuth() {
   auth.onAuthStateChanged(async function (user) {
     if (user) {
       A.user = user;
       var ok = await verifyAdmin(user);
-      if (ok) showShell(); else showLogin(true);
-    } else { showLogin(false); }
+      if (ok) showShell(); else { await auth.signOut(); showLogin(true); }
+    } else showLogin(false);
   });
   el('adminLoginForm').addEventListener('submit', async function (e) {
     e.preventDefault();
-    var email = el('adminEmail').value.trim();
-    var pass = el('adminPassword').value;
+    var email = el('adminEmail').value.trim(), pass = el('adminPassword').value;
     if (!email || !pass) return toast('Error', 'Fill all fields', 'warning');
-    try {
-      await auth.signInWithEmailAndPassword(email, pass);
-    } catch (err) {
-      if (err.code === 'auth/user-not-found' && email.toLowerCase() === ADMIN_EMAIL) {
-        try { await auth.createUserWithEmailAndPassword(email, pass); toast('Created', 'Admin account created', 'success'); }
-        catch (e2) { toast('Error', e2.message, 'error'); }
-      } else { toast('Error', err.message, 'error'); }
-    }
+    try { await auth.signInWithEmailAndPassword(email, pass); }
+    catch (err) { toast('Login failed', firebaseAuthMessage(err), 'error'); }
   });
   var tp = el('toggleAdminPw');
   if (tp) tp.addEventListener('click', function () {
-    var i = el('adminPassword');
-    i.type = i.type === 'password' ? 'text' : 'password';
+    var i = el('adminPassword'); i.type = i.type === 'password' ? 'text' : 'password';
   });
   el('adminLogoutBtn').addEventListener('click', function () { auth.signOut(); });
 }
+function firebaseAuthMessage(err) {
+  var map = {
+    'auth/invalid-credential':'Invalid email or password.',
+    'auth/wrong-password':'Invalid email or password.',
+    'auth/user-disabled':'This account is disabled.',
+    'auth/too-many-requests':'Too many attempts. Try again later.'
+  };
+  return map[err && err.code] || (err && err.message) || 'Authentication failed.';
+}
 async function verifyAdmin(user) {
   try {
-    var d1 = await db.collection('admin_users').doc(user.uid).get();
-    if (d1.exists) { A.role = d1.data().role || 'super'; A.isAdmin = true; return true; }
-  } catch (e) {}
-  try {
-    var d2 = await db.collection('admin_users').doc((user.email || '').toLowerCase()).get();
-    if (d2.exists) { A.role = d2.data().role || 'super'; A.isAdmin = true; return true; }
-  } catch (e) {}
-  if (user.email && user.email.toLowerCase() === ADMIN_EMAIL) {
-    try {
-      await db.collection('admin_users').doc(user.uid).set({
-        email: user.email, role: 'super', permissions: ['*'],
-        ts: Date.now(), createdAt: serverTimestamp(), createdBy: 'auto-bootstrap'
-      });
-    } catch (e) { console.warn(e); }
-    A.isAdmin = true; A.role = 'super';
-    return true;
+    var d = await db.collection('admin_users').doc(user.uid).get();
+    if (!d.exists) return false;
+    var data = d.data() || {};
+    A.role = data.role || 'support';
+    A.isAdmin = data.active !== false;
+    return A.isAdmin;
+  } catch (e) {
+    console.error('Admin authorization check failed', e);
+    return false;
   }
-  return false;
 }
 function showLogin(denied) {
   el('adminAuth').style.display = 'grid';
@@ -187,7 +180,12 @@ async function loadAll() {
 }
 async function loadSettings() {
   try { var d = await db.collection('settings').doc('global').get(); if (d.exists) A.settings = d.data(); } catch (e) {}
-  A.settings = Object.assign({ coinRate: 10000, minWithdraw: 10000, signupBonus: 100, adReward: 120, adDailyCap: 15, withdrawalFeePct: 1, referralPercent: 10 }, A.settings);
+  A.settings = Object.assign({
+  coinRate: 10000, minWithdraw: 10000, signupBonus: 100, adReward: 120, adDailyCap: 15,
+  withdrawalFeePct: 1, referralPercent: 10, maintenance: false, allowSignup: true,
+  ads: { mode: 'production', networks: { adsterra: true, monetag: true, hilltop: true, popads: false },
+         placements: { banner468: true, native: true, popunder: false, socialbar: false, smartlink: true, monetagDirect: true } }
+}, A.settings);
 }
 async function loadUsers() {
   try {
@@ -547,6 +545,13 @@ function renderSettings() {
   set('setCoinRate', A.settings.coinRate || 10000); set('setSignupBonus', A.settings.signupBonus || 100);
   set('setMinWithdraw', A.settings.minWithdraw || 10000); set('setWithdrawFee', A.settings.withdrawalFeePct || 1);
   set('setSiteUrl', A.settings.siteUrl || ''); set('setSupportEmail', A.settings.supportEmail || '');
+  document.querySelectorAll('input[name="maintenance"]').forEach(function(x){ x.checked = (x.value === (A.settings.maintenance ? 'on':'off')); });
+  document.querySelectorAll('input[name="allowSignup"]').forEach(function(x){ x.checked = (x.value === (A.settings.allowSignup === false ? 'no':'yes')); });
+  var ads = A.settings.ads || {}, nw = ads.networks || {}, pl = ads.placements || {};
+  ['Adsterra','Monetag','Hilltop','Popads'].forEach(function(n){ var e=el('adNetwork'+n); if(e) e.checked = nw[n.toLowerCase()] !== false && !(n==='Popads' && nw.popads!==true); });
+  [['adPlacementBanner','banner468'],['adPlacementNative','native'],['adPlacementPopunder','popunder'],['adPlacementSocialbar','socialbar'],['adPlacementSmartlink','smartlink'],['adPlacementMonetagDirect','monetagDirect']].forEach(function(pair){ var e=el(pair[0]); if(e) e.checked = pl[pair[1]] !== false; });
+  var tm=el('adTestMode'); if(tm) tm.value=ads.mode||'production';
+  set('adsCoinsPerAd', A.settings.adReward || 120); set('adsDailyCap', A.settings.adDailyCap || 15);
 }
 function renderSecurity() {
   var l = el('securityEventsList');
@@ -592,9 +597,21 @@ function bindForms() {
   el('createGameBtn').addEventListener('click', function () { editGameModal(null); });
   el('createSurveyBtn').addEventListener('click', function () { editSurveyModal(null); });
   el('saveAllSettingsBtn').addEventListener('click', async function () {
-    var data = { coinRate: parseInt(el('setCoinRate').value) || 10000, signupBonus: parseInt(el('setSignupBonus').value) || 100, minWithdraw: parseInt(el('setMinWithdraw').value) || 10000, withdrawalFeePct: parseFloat(el('setWithdrawFee').value) || 1, siteUrl: el('setSiteUrl').value.trim(), supportEmail: el('setSupportEmail').value.trim(), ts: Date.now(), updatedAt: serverTimestamp() };
+    var ads = A.settings.ads || {};
+    var data = {
+      coinRate: Math.max(1, parseInt(el('setCoinRate').value) || 10000),
+      signupBonus: Math.max(0, parseInt(el('setSignupBonus').value) || 100),
+      minWithdraw: Math.max(0, parseInt(el('setMinWithdraw').value) || 10000),
+      withdrawalFeePct: Math.max(0, parseFloat(el('setWithdrawFee').value) || 0),
+      siteUrl: el('setSiteUrl').value.trim(),
+      supportEmail: el('setSupportEmail').value.trim(),
+      maintenance: document.querySelector('input[name="maintenance"]:checked')?.value === 'on',
+      allowSignup: document.querySelector('input[name="allowSignup"]:checked')?.value !== 'no',
+      ts: Date.now(), updatedAt: serverTimestamp()
+    };
     await db.collection('settings').doc('global').set(data, { merge: true });
-    Object.assign(A.settings, data); log('settings_update', 'global'); toast('Saved', 'Settings updated', 'success');
+    Object.assign(A.settings, data); log('settings_update', JSON.stringify({maintenance:data.maintenance,allowSignup:data.allowSignup}));
+    toast('Saved', 'Settings updated', 'success');
   });
   el('saveSecurityBtn').addEventListener('click', function () { log('security_update', 'thresholds'); toast('Saved', 'Security settings saved', 'success'); });
   el('seedDataBtn').addEventListener('click', seedAll);
@@ -603,19 +620,42 @@ function bindForms() {
     log('backup_export', 'full');
   });
   el('exportUsersBtn').addEventListener('click', function () { exportCSV('users', [['username', 'email', 'earned', 'withdrawn', 'status']].concat(A.users.map(function (u) { return [u.username, u.email, u.lifetimeEarned, u.totalWithdrawn, u.status]; }))); });
-  el('postbackForm').addEventListener('submit', async function (e) {
+  el('postbackForm').addEventListener('submit', function (e) {
     e.preventDefault();
-    var uidVal = el('pbUid').value.trim(), coins = parseInt(el('pbCoins').value) || 0;
-    if (!uidVal || !coins) return toast('Error', 'Fill UID and coins', 'warning');
-    await db.collection('ledger').add({ uid: uidVal, type: 'offer', description: 'Postback credit', coins: coins, status: 'completed', reference: 'PB-' + uid().slice(0, 6), ts: Date.now(), createdAt: serverTimestamp() });
-    await db.collection('users').doc(uidVal).update({ lifetimeEarned: increment(coins), offersCompleted: increment(1) });
-    log('postback_sim', '+' + coins + ' to ' + uidVal);
-    toast('Credited', '+' + fmt(coins) + ' coins', 'success');
+    toast('Backend required', 'Postbacks must be verified server-side. This client simulator no longer credits coins.', 'warning');
   });
   el('adsConfigForm').addEventListener('submit', async function (e) {
     e.preventDefault();
-    await db.collection('settings').doc('global').set({ adReward: parseInt(el('adsCoinsPerAd').value) || 120, adDailyCap: parseInt(el('adsDailyCap').value) || 15 }, { merge: true });
-    log('ads_config', 'updated'); toast('Saved', 'Ad settings saved', 'success');
+    var data = { adReward: Math.max(0, parseInt(el('adsCoinsPerAd').value) || 120), adDailyCap: Math.max(0, parseInt(el('adsDailyCap').value) || 15), adsECPM: Math.max(0, parseFloat(el('adsECPM').value) || 0) };
+    await db.collection('settings').doc('global').set(data, { merge: true });
+    Object.assign(A.settings, data);
+    log('ads_config', JSON.stringify(data)); toast('Saved', 'Ad reward settings saved', 'success');
+  });
+  var saveAdsCenterBtn = el('saveAdsCenterBtn');
+  if (saveAdsCenterBtn) saveAdsCenterBtn.addEventListener('click', async function () {
+    var data = {
+      ads: {
+        mode: el('adTestMode')?.value || 'production',
+        networks: {
+          adsterra: !!el('adNetworkAdsterra')?.checked,
+          monetag: !!el('adNetworkMonetag')?.checked,
+          hilltop: !!el('adNetworkHilltop')?.checked,
+          popads: !!el('adNetworkPopads')?.checked
+        },
+        placements: {
+          banner468: !!el('adPlacementBanner')?.checked,
+          native: !!el('adPlacementNative')?.checked,
+          popunder: !!el('adPlacementPopunder')?.checked,
+          socialbar: !!el('adPlacementSocialbar')?.checked,
+          smartlink: !!el('adPlacementSmartlink')?.checked,
+          monetagDirect: !!el('adPlacementMonetagDirect')?.checked
+        }
+      }
+    };
+    await db.collection('settings').doc('global').set(data, { merge: true });
+    Object.assign(A.settings, data);
+    log('ads_center_update', JSON.stringify(data.ads));
+    toast('Saved', 'Ad Center updated', 'success');
   });
   el('addFaqBtn').addEventListener('click', function () {
     openAdminModal('＋ Add FAQ', '<div class="field"><label>Question</label><input class="input" id="fqQ"></div><div class="field"><label>Answer</label><textarea class="textarea" id="fqA" rows="3"></textarea></div><button class="btn btn-accent btn-block" onclick="saveFaq()">💾 Save</button>');
@@ -624,15 +664,32 @@ function bindForms() {
     e.preventDefault();
     var email = el('grantAdminEmail').value.trim().toLowerCase();
     var role = el('grantAdminRole').value;
-    if (!email) return;
-    await db.collection('admin_users').doc(email).set({ email: email, role: role, ts: Date.now(), createdAt: serverTimestamp(), grantedBy: A.user.email });
-    log('grant_admin', email + ' as ' + role); toast('Granted', email + ' → ' + role, 'success'); loadAdmins();
+    if (!email) return toast('Error','Enter an email or UID','warning');
+    var users = await db.collection('users').where('email','==',email).limit(1).get().catch(function(){return {empty:true};});
+    if (users.empty) return toast('Not found','Create/authenticate the user first.','warning');
+    var uidVal = users.docs[0].id;
+    var perms = role === 'super' ? ['*'] :
+      role === 'finance' ? ['finance.read','finance.approve','withdrawals.process','orders.process'] :
+      ['users.read','users.write','support.read','support.write','content.read'];
+    await db.collection('admin_users').doc(uidVal).set({
+      uid:uidVal,email:email,role:role,active:true,permissions:perms,
+      ts:Date.now(),createdAt:serverTimestamp(),grantedBy:A.user.uid
+    }, {merge:true});
+    log('grant_admin', uidVal + ' as ' + role); toast('Granted', email + ' → ' + role, 'success'); loadAdmins();
   });
   el('revokeAdminForm').addEventListener('submit', async function (e) {
     e.preventDefault();
-    var email = el('revokeAdminEmail').value.trim().toLowerCase();
-    await db.collection('admin_users').doc(email).delete().catch(function () {});
-    log('revoke_admin', email); toast('Revoked', email, 'success'); loadAdmins();
+    var value = el('revokeAdminEmail').value.trim().toLowerCase();
+    if (!value) return;
+    var snap = await db.collection('admin_users').doc(value).get().catch(function(){return null;});
+    var uidVal=value;
+    if (!snap || !snap.exists) {
+      var users = await db.collection('users').where('email','==',value).limit(1).get().catch(function(){return {empty:true};});
+      if (!users.empty) uidVal=users.docs[0].id;
+    }
+    if (uidVal === A.user.uid) return toast('Blocked','You cannot revoke your own admin access.','warning');
+    await db.collection('admin_users').doc(uidVal).update({active:false,revokedAt:serverTimestamp(),revokedBy:A.user.uid}).catch(function(){});
+    log('revoke_admin', uidVal); toast('Revoked', value, 'success'); loadAdmins();
   });
   el('checkClaimBtn').addEventListener('click', async function () {
     var email = el('checkClaimEmail').value.trim().toLowerCase();
@@ -695,7 +752,15 @@ async function seedAll() {
       { title: 'Roblox', category: 'Game Top-Up', type: 'topup', icon: '🧱', color: 'linear-gradient(135deg,#ff3d71,#ff6b6b)', price: 4000, stock: 999, active: true, packages: [{ label: '80 Robux', cost: 4000 }, { label: '400 Robux', cost: 18000 }] }
     ];
     for (i = 0; i < rewards.length; i++) { rewards[i].ts = Date.now(); rewards[i].createdAt = serverTimestamp(); await db.collection('rewards').add(rewards[i]); }
-    var providers = [{ id: 'freecash', name: 'Freecash', type: 'affiliate', active: true }, { id: 'lootably', name: 'Lootably', type: 'offerwall', active: true }, { id: 'adgate', name: 'AdGate', type: 'offerwall', active: true }, { id: 'adsterra', name: 'Adsterra', type: 'adnetwork', active: true }, { id: 'monetag', name: 'Monetag', type: 'adnetwork', active: true }];
+    var providers = [
+{id:'freecash',name:'Freecash',type:'affiliate',active:true},
+{id:'lootably',name:'Lootably',type:'offerwall',active:true},
+{id:'adgate',name:'AdGate',type:'offerwall',active:true},
+{id:'adsterra',name:'Adsterra',type:'adnetwork',active:true},
+{id:'monetag',name:'Monetag',type:'adnetwork',active:true},
+{id:'hilltopads',name:'HilltopAds',type:'adnetwork',active:true},
+{id:'popads',name:'PopAds',type:'adnetwork',active:false}
+];
     for (i = 0; i < providers.length; i++) { providers[i].ts = Date.now(); await db.collection('providers').doc(providers[i].id).set(providers[i]); }
     var faqs = [{ q: 'How do I earn coins?', a: 'Complete offers, games, surveys, ads and daily rewards.' }, { q: 'How do I withdraw?', a: 'Withdraw page → choose method → confirm. 24-72h review.' }, { q: 'Is it safe?', a: 'Yes — encryption, anti-fraud and trusted partners only.' }];
     for (i = 0; i < faqs.length; i++) { faqs[i].ts = Date.now(); faqs[i].createdAt = serverTimestamp(); await db.collection('faqs').add(faqs[i]); }
@@ -705,7 +770,10 @@ async function seedAll() {
     for (i = 0; i < promos.length; i++) { promos[i].ts = Date.now(); promos[i].createdAt = serverTimestamp(); await db.collection('promos').add(promos[i]); }
     var posts = [{ title: '10 Ways to Earn More', icon: '💡', content: 'Complete daily tasks, keep your streak, and use game milestones for maximum coins.' }, { title: 'New Games This Week', icon: '🎮', content: 'Free Fire, PUBG and Roblox milestone rewards are live now.' }];
     for (i = 0; i < posts.length; i++) { posts[i].ts = Date.now(); posts[i].createdAt = serverTimestamp(); await db.collection('posts').add(posts[i]); }
-    await db.collection('settings').doc('global').set({ coinRate: 10000, minWithdraw: 10000, signupBonus: 100, adReward: 120, adDailyCap: 15, withdrawalFeePct: 1, referralPercent: 10, maintenance: false, siteUrl: location.origin, supportEmail: 'support@rewords.com', ts: Date.now(), updatedAt: serverTimestamp() }, { merge: true });
+    await db.collection('settings').doc('global').set({ coinRate: 10000, minWithdraw: 10000, signupBonus: 100, adReward: 120, adDailyCap: 15, withdrawalFeePct: 1, referralPercent: 10, maintenance: false, siteUrl: location.origin, supportEmail: 'support@rewords.com', allowSignup: true,
+        ads: { mode:'production', networks:{adsterra:true,monetag:true,hilltop:true,popads:false},
+        placements:{banner468:true,native:true,popunder:false,socialbar:false,smartlink:true} },
+        ts: Date.now(), updatedAt: serverTimestamp() }, { merge: true });
     log('seed_data', 'full seed');
     toast('Done 🎉', 'Sample data seeded successfully', 'success');
     loadAll();

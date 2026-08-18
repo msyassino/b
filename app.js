@@ -166,6 +166,18 @@ function getDeviceFingerprint() {
 }
 
 /* ---------------- AUTH ---------------- */
+function isMaintenance() { return State.settings && State.settings.maintenance === true; }
+function blockDuringMaintenance(action) {
+  if (!isMaintenance()) return false;
+  toast('🛠️', 'Site is temporarily under maintenance.', 'warning');
+  return true;
+}
+function requireVerifiedUser() {
+  if (!State.user) { openModal('authModal'); return false; }
+  if (State.user.email && !State.user.emailVerified) { openModal('verifyModal'); return false; }
+  return true;
+}
+
 function switchAuthPane(p) {
   el('loginForm').classList.toggle('hidden', p !== 'login');
   el('signupForm').classList.toggle('hidden', p !== 'signup');
@@ -194,12 +206,16 @@ function initAuthUI() {
     const un = el('signupUsername').value.trim(), em = el('signupEmail').value.trim(), pw = el('signupPassword').value;
     if (un.length < 3) return toast(t('auth.signup'), t('err.username'), 'warning');
     if (pw.length < 8) return toast(t('auth.signup'), t('err.password'), 'warning');
+    if (State.settings.allowSignup === false) return toast('🚫', 'New signups are currently disabled.', 'warning');
     try {
       const cred = await auth.createUserWithEmailAndPassword(em, pw);
       const refCode = el('signupReferral').checked ? el('signupReferralCode').value.trim().toUpperCase() : '';
       await createUserProfile(cred.user, un, refCode);
+      if (cred.user.email && !cred.user.emailVerified) {
+        await cred.user.sendEmailVerification().catch(function(){});
+        openModal('verifyModal');
+      }
       closeModal('authModal');
-      showRewardPopup(State.settings.signupBonus || 100, t('ledger.signupBonus'));
     } catch (err) { toast('❌', err.message, 'error'); }
   });
 
@@ -212,6 +228,7 @@ function initAuthUI() {
   });
 
   el('googleLoginBtn').addEventListener('click', async function () {
+    if (State.settings.allowSignup === false) return toast('🚫', 'New signups are currently disabled.', 'warning');
     try {
       const prov = new firebase.auth.GoogleAuthProvider();
       const cred = await auth.signInWithPopup(prov);
@@ -301,13 +318,97 @@ async function updateBalanceUI() {
   set('refTotal', pf.referralCount || 0); set('refEarned', fmtNum(pf.referralEarned || 0)); set('refActive', pf.referralCount || 0);
 }
 
+
+/* ---------------- TRUSTED ADS ---------------- */
+function addExternalScript(src, attrs) {
+  return new Promise(function(resolve,reject){
+    if (document.querySelector('script[data-rewords-ad-src="'+src+'"]')) return resolve();
+    var sc=document.createElement('script'); sc.src=src; sc.async=true; sc.setAttribute('data-rewords-ad-src',src);
+    Object.keys(attrs||{}).forEach(function(k){ if(attrs[k] !== null && attrs[k] !== undefined) sc.setAttribute(k,String(attrs[k])); });
+    sc.onload=resolve; sc.onerror=reject; document.head.appendChild(sc);
+  });
+}
+function renderAdSlot(id, html) {
+  var elx=el(id); if(elx) elx.innerHTML=html||'';
+}
+async function initTrustedAds() {
+  var ads=State.settings.ads||{}, nw=ads.networks||{}, pl=ads.placements||{};
+  // Hide all ad placements first when disabled.
+  document.querySelectorAll('[data-ad-placement]').forEach(function(x){ x.style.display=''; });
+  // Adsterra banner
+  if (nw.adsterra !== false && pl.banner468 !== false) {
+    renderAdSlot('ad-home-banner','');
+    var wrap=el('ad-home-banner');
+    if(wrap){
+      var opt=document.createElement('script'); opt.textContent="var atOptions={key:'c351ac7c1200d215d77a5b0a74a395fe',format:'iframe',height:60,width:468,params:{}};";
+      wrap.appendChild(opt);
+      var js=document.createElement('script'); js.src='https://www.highperformanceformat.com/c351ac7c1200d215d77a5b0a74a395fe/invoke.js'; wrap.appendChild(js);
+    }
+  }
+  // Adsterra Native
+  if (nw.adsterra !== false && pl.native !== false) {
+    ['ad-home-native','ad-games-native','ad-watch-native'].forEach(function(id,idx){
+      var wrap=el(id); if(!wrap) return;
+      var c='container-df7130eb24354334e85ee01b5be086f2-'+idx;
+      wrap.innerHTML='<div id="'+c+'"></div>';
+      var sc=document.createElement('script'); sc.async=true; sc.setAttribute('data-cfasync','false');
+      sc.src='https://pl30913455.effectivecpmnetwork.com/df7130eb24354334e85ee01b5be086f2/invoke.js'; wrap.prepend(sc);
+    });
+  }
+  // Monetag MultiTag
+  if (nw.monetag !== false) {
+    await addExternalScript('https://quge5.com/88/tag.min.js', {'data-zone':'271240','data-cfasync':'false'}).catch(function(){});
+  }
+  // HilltopAds
+  if (nw.hilltop === true) {
+    await addExternalScript('https://infamous-maximum.com/cKDd9O6.bL2T5/lZS/WQQe9INdzOM/z/MjzNYv0qM/S/0_3FMhzmMwz/NdjIQ/1U', {'referrerpolicy':'no-referrer-when-downgrade'}).catch(function(){});
+  }
+  // Adsterra Popunder / Social Bar are intentionally disabled by default.
+  if (nw.adsterra !== false && pl.popunder === true) {
+    await addExternalScript('https://pl30913454.effectivecpmnetwork.com/2e/8e/1d/2e8e1d21821e52cabb4dca2fb31ae1ed.js', {}).catch(function(){});
+  }
+  if (nw.adsterra !== false && pl.socialbar === true) {
+    await addExternalScript('https://pl30913456.effectivecpmnetwork.com/32/aa/62/32aa624c58a1d6ea82421be6e9c8d4b4.js', {}).catch(function(){});
+  }
+  // Smartlinks / Direct Links
+  var sl=el('ad-smartlink');
+  if(sl){
+    if(nw.adsterra !== false && pl.smartlink !== false){
+      sl.href='https://www.effectivecpmnetwork.com/z4tps2vcr?key=4f9ed7a11b0bab57c48fbe6c874b5a18';
+      sl.style.display='';
+    } else sl.style.display='none';
+  }
+  var ml=el('monetag-direct-link');
+  if(ml){
+    ml.href='https://omg10.com/4/11605558';
+    ml.style.display = (nw.monetag !== false && pl.monetagDirect !== false) ? '' : 'none';
+  }
+  // Future PopAds placeholder: no code is activated without official PopAds code.
+  if(nw.popads === true) toast('PopAds','PopAds is enabled in settings but waiting for its official placement code.','info');
+}
+function applyMaintenanceGate() {
+  var ov=el('maintenanceOverlay'); if(!ov) return;
+  ov.hidden=!isMaintenance();
+  document.body.classList.toggle('maintenance-active',isMaintenance());
+  if(isMaintenance()) {
+    document.querySelectorAll('[data-nav]').forEach(function(x){ x.classList.add('maintenance-disabled'); });
+  }
+  var r=el('maintenanceRetryBtn'); if(r && !r._bound){r._bound=true;r.addEventListener('click',function(){location.reload();});}
+}
+
 /* ---------------- DATA ---------------- */
 async function loadSettings() {
   try {
     const d = await db.collection('settings').doc('global').get();
     if (d.exists) State.settings = d.data();
   } catch (e) { }
-  State.settings = Object.assign({ signupBonus: 100, minWithdraw: 10000, coinRate: 10000, adReward: 120, adDailyCap: 15, withdrawalFeePct: 1, referralPercent: 10, siteUrl: location.origin + location.pathname }, State.settings);
+  State.settings = Object.assign({
+    signupBonus:100,minWithdraw:10000,coinRate:10000,adReward:120,adDailyCap:15,
+    withdrawalFeePct:1,referralPercent:10,allowSignup:true,maintenance:false,
+    ads:{mode:'production',networks:{adsterra:true,monetag:true,hilltop:true,popads:false},
+    placements:{banner468:true,native:true,popunder:false,socialbar:false,smartlink:true,monetagDirect:true}},
+    siteUrl: location.origin + location.pathname
+  }, State.settings);
 }
 async function loadCatalog() {
   function get(n) { return colRef(n).get().then(function (s) { return s.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); }); }).catch(function () { return []; }); }
@@ -734,6 +835,7 @@ async function completeSurvey(id) {
   showRewardPopup(coins, s.title || '');
 }
 async function redeemReward(id) {
+  if (blockDuringMaintenance()) return;
   if (!State.user) return;
   const r = State.rewards.find(function (x) { return x.id === id; });
   if (!r) return;
@@ -747,29 +849,23 @@ async function redeemReward(id) {
   toast('🎁', t('rewards.ordered'), 'success'); celebrate();
 }
 async function watchAd() {
-  if (!State.user) return;
-  const pf = State.profile || {};
-  const cap = State.settings.adDailyCap || 15;
-  const used = (pf.adsDate === todayKey()) ? (pf.adsWatchedToday || 0) : 0;
-  if (used >= cap) return toast('⚠️', t('watch.capReached'), 'warning');
-  const btn = el('watchAdBtn'); if (btn) btn.disabled = true;
-  const cd = el('watchCountdownValue');
-  let n = 5;
-  const iv = setInterval(async function () {
-    if (cd) cd.textContent = n;
-    if (n <= 0) {
-      clearInterval(iv);
-      if (btn) btn.disabled = false;
-      const reward = State.settings.adReward || 120;
-      await addLedger(State.user.uid, 'ad', t('ledger.adReward'), reward, 'completed', 'AD-' + uid().slice(0, 6));
-      await colRef('users').doc(State.user.uid).update({ adsWatchedToday: used + 1, adsDate: todayKey(), xp: increment(2) }).catch(function () {});
-      updateBalanceUI(); renderWatch();
-      showRewardPopup(reward, t('ledger.adReward'));
-    }
-    n--;
-  }, 1000);
+  if (blockDuringMaintenance()) return;
+  if (!requireVerifiedUser()) return;
+  var pf=State.profile||{}, cap=State.settings.adDailyCap||15;
+  var used=(pf.adsDate===todayKey())?(pf.adsWatchedToday||0):0;
+  if(used>=cap) return toast('⚠️',t('watch.capReached'),'warning');
+  var btn=el('watchAdBtn'); if(btn) btn.disabled=true;
+  var smart=el('ad-smartlink');
+  if(smart && smart.style.display!=='none') {
+    window.open(smart.href,'_blank','noopener,noreferrer');
+    toast('📺','Ad opened. Reward is issued only after verified provider confirmation.','info');
+  } else {
+    toast('📺','No verified rewarded-ad callback is configured yet.','info');
+  }
+  setTimeout(function(){ if(btn) btn.disabled=false; },1500);
 }
 async function claimDaily() {
+  if (blockDuringMaintenance()) return;
   if (!State.user) return;
   const pf = State.profile || {};
   if (pf.lastClaimDate === todayKey()) return toast('ℹ️', t('daily.claimed'), 'info');
@@ -789,6 +885,7 @@ async function claimDaily() {
   showRewardPopup(reward, 'Day ' + streak);
 }
 async function spinWheel() {
+  if (blockDuringMaintenance()) return;
   if (!State.user) return;
   const pf = State.profile || {};
   if (pf.wheelSpunDate === todayKey()) return toast('ℹ️', t('daily.wheelSpun'), 'info');
@@ -804,6 +901,7 @@ async function spinWheel() {
   }, 4200);
 }
 async function scratchCard() {
+  if (blockDuringMaintenance()) return;
   if (!State.user) return;
   const pf = State.profile || {};
   if (pf.scratchDate === todayKey()) return toast('ℹ️', t('daily.scratchDone'), 'info');
@@ -861,6 +959,7 @@ async function confirmTopup() {
   updateBalanceUI(); toast('⚡', t('topup.success'), 'success'); celebrate();
 }
 async function requestWithdrawal() {
+  if (blockDuringMaintenance()) return;
   if (!State.user) return;
   const w = State.wallet || { coins: 0, pending: 0 };
   const min = State.settings.minWithdraw || 10000;
@@ -1060,6 +1159,8 @@ async function boot() {
   initNavigation();
   initGlobalActions();
   await loadSettings();
+  applyMaintenanceGate();
+  await initTrustedAds();
   await loadCatalog();
   watchUser();
   watchCatalog();

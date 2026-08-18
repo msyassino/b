@@ -19,9 +19,21 @@
 
 <!-- ============ AD NETWORK SCRIPTS ============ -->
 <!-- Adsterra Popunder -->
-<script src="https://pl30883338.effectivecpmnetwork.com/f2/a0/3c/f2a03c3e517e5b8b30ca73eac42e76ce.js"></script>
+
 </head>
+
 <body>
+<!-- Centralized maintenance gate. The client is only a presentation layer;
+     Firestore Rules/backend remain the security boundary. -->
+<div id="maintenanceOverlay" class="maintenance-overlay" hidden aria-live="polite">
+  <div class="maintenance-card">
+    <div class="maintenance-icon">🛠️</div>
+    <h1>Site Under Maintenance</h1>
+    <p>Rewords is temporarily unavailable while we perform maintenance. Please try again later.</p>
+    <button class="btn btn-accent" id="maintenanceRetryBtn">Refresh</button>
+  </div>
+</div>
+
 
 <!-- ============ PARTICLES BACKGROUND ============ -->
 <div class="particles" id="particles" aria-hidden="true"></div>
@@ -196,7 +208,7 @@
   <!-- AD SLOT: Native Banner -->
   <div class="ad-box ad-box-native mb-4">
     <span class="ad-label">Advertisement</span>
-    <script async="async" data-cfasync="false" src="https://pl30883341.effectivecpmnetwork.com/f4263ddbfe2b4cb1e4ebdad01fc57d37/invoke.js"></script>
+    
     <div id="container-f4263ddbfe2b4cb1e4ebdad01fc57d37"></div>
   </div>
 
@@ -302,18 +314,9 @@
   </div>
 
   <!-- AD SLOT: Banner 468x60 -->
-  <div class="ad-box ad-box-468 mb-4">
+  <div class="ad-box ad-box-468 mb-4" data-ad-placement="home_banner">
     <span class="ad-label">Advertisement</span>
-    <script>
-      atOptions = {
-        'key' : 'c26b6f67e990df9cd2681f276abe3231',
-        'format' : 'iframe',
-        'height' : 60,
-        'width' : 468,
-        'params' : {}
-      };
-    </script>
-    <script src="https://www.highperformanceformat.com/c26b6f67e990df9cd2681f276abe3231/invoke.js"></script>
+    <div id="ad-home-banner"></div>
   </div>
 
   <!-- FAQ -->
@@ -454,7 +457,7 @@
     </div>
   </div>
 
-  <div class="ad-box ad-box-native mb-4"><span class="ad-label">Advertisement</span></div>
+  <div class="ad-box ad-box-native mb-4" data-ad-placement="watch_native"><span class="ad-label">Advertisement</span><div id="ad-watch-native"></div></div>
 
   <div class="section reveal">
     <div class="section-head">
@@ -558,7 +561,7 @@
   </div>
   <div class="grid grid-3" id="gamesGrid"></div>
 
-  <div class="ad-box ad-box-native mt-4"><span class="ad-label">Advertisement</span></div>
+  <div class="ad-box ad-box-native mt-4" data-ad-placement="games_native"><span class="ad-label">Advertisement</span><div id="ad-games-native"></div></div>
 </section>
 
 <!-- ============================================ -->
@@ -577,7 +580,9 @@
 <!-- ============================================ -->
 <section class="page" id="page-watch">
   <div class="hero reveal">
-    <div class="hero-title">📺 <span data-i18n="watch.title">Watch Ads & Earn</span></div>
+    <div class="hero-title">📺 <span data-i18n="watch.title">Watch Ads & Earn</span></div>\n  <div class="card mb-4 ad-smartlink-card" data-ad-placement="smartlink"><div class="flex items-center gap-3"><div style="font-size:2rem">🔗</div><div class="flex-1"><div class="font-black">Featured Link</div><div class="text-sm text-muted">Optional sponsor link.</div></div><a id="ad-smartlink" class="btn btn-accent" href="#" target="_blank" rel="noopener noreferrer">Open</a></div></div>
+
+
     <div class="hero-sub" data-i18n="watch.sub">Watch short rewarded videos and earn instant coins. Daily cap applies.</div>
   </div>
 
@@ -611,7 +616,7 @@
     <button class="btn btn-accent" data-nav="daily" data-i18n="watch.spinBtn">Go to Wheel</button>
   </div>
 
-  <div class="ad-box ad-box-native mb-4"><span class="ad-label">Advertisement</span></div>
+  <div class="ad-box ad-box-native mb-4" data-ad-placement="watch_native"><span class="ad-label">Advertisement</span><div id="ad-watch-native"></div></div>
 
   <div class="section reveal">
     <div class="section-head">
@@ -1649,11 +1654,18 @@
 <!-- ============ APP.JS ============ -->
 <script src="app.js"></script>
 
+<!-- ============ MONETAG DIRECT LINK ============ -->
+<div class="ad-direct-link-wrap" data-ad-placement="monetagDirect">
+  <a id="monetag-direct-link" href="https://omg10.com/4/11605558" target="_blank" rel="noopener noreferrer sponsored" class="btn btn-accent">
+    Monetag Direct Link
+  </a>
+</div>
+
 <!-- ============ ADSTERRA SOCIAL BAR ============ -->
-<script src="https://pl30883339.effectivecpmnetwork.com/4e/ac/77/4eac77d9d06816802aaaabe459e4ee83.js"></script>
+
 
 <!-- ============ MONETAG ============ -->
-<script src="https://quge5.com/88/tag.min.js" data-zone="270698" async data-cfasync="false"></script>
+
 
 </body>
 </html>
