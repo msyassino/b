@@ -16,21 +16,21 @@
         import { getFirestore, collection, doc, setDoc, getDoc, getDocs, updateDoc, increment, query, where, orderBy, limit, addDoc, serverTimestamp, runTransaction } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
         import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js";
 
-        // Make Firebase available globally for the main script
-        window.firebaseApp = initializeApp({
-            apiKey: "AIzaSyBPMbRdVEJ85Is7eg4UkAFs_UHq-BD_Fhg",
-            authDomain: "rewords-45ccf.firebaseapp.com",
-            projectId: "rewords-45ccf",
-            storageBucket: "rewords-45ccf.firebasestorage.app",
-            messagingSenderId: "324257034049",
-            appId: "1:324257034049:web:2e75279382793007683bc0",
-            measurementId: "G-5LNDESBVST"
-        });
-        window.firebaseAuth = getAuth(window.firebaseApp);
-        window.firebaseDb = getFirestore(window.firebaseApp);
-        window.firebaseFunctions = getFunctions(window.firebaseApp);
-        window.firebaseModules = { onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, collection, doc, setDoc, getDoc, getDocs, updateDoc, increment, query, where, orderBy, limit, addDoc, serverTimestamp, runTransaction, httpsCallable };
-    </script>
+      <!-- Firebase SDK via Cloudflare CDN (works everywhere) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.12.0/firebase-app-compat.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.12.0/firebase-auth-compat.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.12.0/firebase-firestore-compat.min.js"></script>
+<script>
+    firebase.initializeApp({
+        apiKey: "AIzaSyBPMbRdVEJ85Is7eg4UkAFs_UHq-BD_Fhg",
+        authDomain: "rewords-45ccf.firebaseapp.com",
+        projectId: "rewords-45ccf",
+        storageBucket: "rewords-45ccf.firebasestorage.app",
+        messagingSenderId: "324257034049",
+        appId: "1:324257034049:web:2e75279382793007683bc0",
+        measurementId: "G-5LNDESBVST"
+    });
+</script>
 
     <link rel="stylesheet" href="style.css">
     <!-- Font Awesome for Icons -->
