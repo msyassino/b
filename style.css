@@ -1809,3 +1809,73 @@ RESPONSIVE
 /* ============================================================================
 END OF STYLESHEET
 ============================================================================ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isAuth() { return request.auth != null; }
+    function isOwner(uid) { return isAuth() && request.auth.uid == uid; }
+    function isAdmin() {
+      return isAuth() && (
+        exists(/databases/$(database)/documents/admin_users/$(request.auth.uid)) ||
+        exists(/databases/$(database)/documents/admin_users/$(request.auth.token.email))
+      );
+    }
+    match /offers/{d} { allow read: if true; allow write: if isAdmin(); }
+    match /games/{d} { allow read: if true; allow write: if isAdmin(); }
+    match /surveys/{d} { allow read: if true; allow write: if isAdmin(); }
+    match /rewards/{d} { allow read: if true; allow write: if isAdmin(); }
+    match /providers/{d} { allow read: if true; allow write: if isAdmin(); }
+    match /faqs/{d} { allow read: if true; allow write: if isAdmin(); }
+    match /events/{d} { allow read: if true; allow write: if isAdmin(); }
+    match /promos/{d} { allow read: if true; allow write: if isAdmin(); }
+    match /posts/{d} { allow read: if true; allow write: if isAdmin(); }
+    match /settings/{d} { allow read: if true; allow write: if isAdmin(); }
+    match /users/{uid} {
+      allow read: if isOwner(uid) || isAdmin();
+      allow create: if isOwner(uid);
+      allow update: if isOwner(uid) || isAdmin();
+      allow delete: if isAdmin();
+    }
+    match /admin_users/{id} {
+      allow read: if isOwner(id) || isAdmin() || (isAuth() && request.auth.token.email == "kenven@admin.com");
+      allow create: if (isOwner(id) && request.auth.token.email == "kenven@admin.com") || isAdmin();
+      allow update, delete: if isAdmin();
+    }
+    match /ledger/{d} {
+      allow read: if isAuth() && (resource.data.uid == request.auth.uid || isAdmin());
+      allow create: if isAuth() && request.resource.data.uid == request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
+    match /notifications/{d} {
+      allow read: if isAuth() && (resource.data.uid == request.auth.uid || isAdmin());
+      allow create: if isAuth();
+      allow update, delete: if isAuth() && (resource.data.uid == request.auth.uid || isAdmin());
+    }
+    match /tickets/{d} {
+      allow read: if isAuth() && (resource.data.uid == request.auth.uid || isAdmin());
+      allow create: if isAuth() && request.resource.data.uid == request.auth.uid;
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+    match /orders/{d} {
+      allow read: if isAuth() && (resource.data.uid == request.auth.uid || isAdmin());
+      allow create: if isAuth() && request.resource.data.uid == request.auth.uid;
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+    match /withdrawals/{d} {
+      allow read: if isAuth() && (resource.data.uid == request.auth.uid || isAdmin());
+      allow create: if isAuth() && request.resource.data.uid == request.auth.uid;
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+    match /referrals/{d} {
+      allow read: if isAuth() && (resource.data.referrerId == request.auth.uid || resource.data.referredId == request.auth.uid || isAdmin());
+      allow create: if isAuth();
+      allow update, delete: if isAdmin();
+    }
+    match /admin_logs/{d} { allow read, create: if isAdmin(); allow update, delete: if isAdmin(); }
+    match /fraud_events/{d} { allow read: if isAdmin(); allow create: if isAuth(); allow update, delete: if isAdmin(); }
+    match /{document=**} { allow read, write: if false; }
+  }
+}
