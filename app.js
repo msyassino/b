@@ -32,6 +32,68 @@ const State = {
   selectedTopupPackage: null, selectedWdMethod: 'PayPal'
 };
 
+const AD_CONFIG = {
+  adsterra: {
+    iframe468Key: 'c351ac7c1200d215d77a5b0a74a395fe',
+    nativeSrc: 'https://pl30913455.effectivecpmnetwork.com/df7130eb24354334e85ee01b5be086f2/invoke.js',
+    nativeContainer: 'container-df7130eb24354334e85ee01b5be086f2',
+    popunderSrc: 'https://pl30913454.effectivecpmnetwork.com/2e/8e/1d/2e8e1d21821e52cabb4dca2fb31ae1ed.js',
+    socialSrc: 'https://pl30913456.effectivecpmnetwork.com/32/aa/62/32aa624c58a1d6ea82421be6e9c8d4b4.js',
+    smartlink: 'https://www.effectivecpmnetwork.com/z4tps2vcr?key=4f9ed7a11b0bab57c48fbe6c874b5a18'
+  },
+  monetag: {
+    tagSrc: 'https://quge5.com/88/tag.min.js', zone: '271240',
+    directLink: 'https://omg10.com/4/11605558'
+  },
+  hilltop: {
+    directScript: `\n<script>(function(krn){var d=document,s=d.createElement('script'),l=d.scripts[d.scripts.length-1];s.settings=krn||{};s.src="//infamous-maximum.com/cKDd9O6.bL2T5/lZS/WQQe9INdzOM/z/MjzNYv0qM/S/0_3FMhzmMwz/NdjIQ/1U";s.async=true;s.referrerPolicy='no-referrer-when-downgrade';l.parentNode.insertBefore(s,l);})({})</script>\n`
+  },
+  popads: { enabled: false, directLink: '' }
+};
+
+function adEnabled(name, fallback=true) {
+  const n = (State.settings && State.settings.ads && State.settings.ads[name]);
+  return n === undefined ? fallback : !!n;
+}
+function mountScript(src, attrs, target) {
+  const host = typeof target === 'string' ? el(target) : target;
+  if (!host || !src) return;
+  if (host.dataset.loaded === '1') return;
+  const script = document.createElement('script');
+  script.src = src; script.async = true;
+  Object.keys(attrs || {}).forEach(k => script.setAttribute(k, attrs[k]));
+  host.appendChild(script); host.dataset.loaded = '1';
+}
+function mountAds() {
+  document.querySelectorAll('[data-ad-provider]').forEach(function(host){
+    const provider = host.getAttribute('data-ad-provider');
+    if (provider === 'adsterra-468' && adEnabled('adsterra468')) {
+      if (host.dataset.loaded === '1') return;
+      const cfg = {key: AD_CONFIG.adsterra.iframe468Key, format:'iframe', height:60, width:468, params:{}};
+      const pre = document.createElement('script'); pre.textContent = 'atOptions = ' + JSON.stringify(cfg) + ';';
+      host.appendChild(pre);
+      mountScript('https://www.highperformanceformat.com/' + AD_CONFIG.adsterra.iframe468Key + '/invoke.js', {}, host);
+    } else if (provider === 'adsterra-native' && adEnabled('adsterraNative')) {
+      if (!host.dataset.loaded) {
+        const script = document.createElement('script'); script.async=true; script.dataset.cfasync='false'; script.src=AD_CONFIG.adsterra.nativeSrc;
+        const box=document.createElement('div'); box.id=AD_CONFIG.adsterra.nativeContainer + '-' + Math.random().toString(36).slice(2,8);
+        host.appendChild(script); host.appendChild(box); host.dataset.loaded='1';
+      }
+    }
+  });
+  if (adEnabled('adsterraPopunder')) mountScript(AD_CONFIG.adsterra.popunderSrc, {}, document.body);
+  if (adEnabled('adsterraSocialBar')) mountScript(AD_CONFIG.adsterra.socialSrc, {}, document.body);
+  if (adEnabled('monetagTag')) mountScript(AD_CONFIG.monetag.tagSrc, {'data-zone':AD_CONFIG.monetag.zone, 'data-cfasync':'false'}, document.body);
+  if (adEnabled('hilltop')) mountScript('//infamous-maximum.com/cKDd9O6.bL2T5/lZS/WQQe9INdzOM/z/MjzNYv0qM/S/0_3FMhzmMwz/NdjIQ/1U', {'referrerpolicy':'no-referrer-when-downgrade'}, document.body);
+}
+function renderAdControlLinks(){
+  const box=el('adDirectLinks'); if(!box) return;
+  const rows=[];
+  if(adEnabled('monetagDirect')) rows.push('<a class="btn btn-ghost btn-sm" target="_blank" rel="noopener" href="'+AD_CONFIG.monetag.directLink+'">🔗 Monetag Direct Link</a>');
+  if(adEnabled('adsterraSmartlink')) rows.push('<a class="btn btn-ghost btn-sm" target="_blank" rel="noopener" href="'+AD_CONFIG.adsterra.smartlink+'">🔗 Adsterra Smartlink</a>');
+  box.innerHTML=rows.join(' ');
+}
+
 const COIN_RATE = 10000;
 const DAILY_PLAN = [50, 100, 200, 350, 500, 750, 1000];
 const WHEEL_SLICES = [50, 100, 200, 50, 500, 100, 250, 50];
@@ -166,18 +228,6 @@ function getDeviceFingerprint() {
 }
 
 /* ---------------- AUTH ---------------- */
-function isMaintenance() { return State.settings && State.settings.maintenance === true; }
-function blockDuringMaintenance(action) {
-  if (!isMaintenance()) return false;
-  toast('🛠️', 'Site is temporarily under maintenance.', 'warning');
-  return true;
-}
-function requireVerifiedUser() {
-  if (!State.user) { openModal('authModal'); return false; }
-  if (State.user.email && !State.user.emailVerified) { openModal('verifyModal'); return false; }
-  return true;
-}
-
 function switchAuthPane(p) {
   el('loginForm').classList.toggle('hidden', p !== 'login');
   el('signupForm').classList.toggle('hidden', p !== 'signup');
@@ -206,16 +256,14 @@ function initAuthUI() {
     const un = el('signupUsername').value.trim(), em = el('signupEmail').value.trim(), pw = el('signupPassword').value;
     if (un.length < 3) return toast(t('auth.signup'), t('err.username'), 'warning');
     if (pw.length < 8) return toast(t('auth.signup'), t('err.password'), 'warning');
-    if (State.settings.allowSignup === false) return toast('🚫', 'New signups are currently disabled.', 'warning');
     try {
+      if (State.settings.allowNewSignups === false) return toast('🚫', 'New signups are currently disabled.', 'warning');
       const cred = await auth.createUserWithEmailAndPassword(em, pw);
       const refCode = el('signupReferral').checked ? el('signupReferralCode').value.trim().toUpperCase() : '';
       await createUserProfile(cred.user, un, refCode);
-      if (cred.user.email && !cred.user.emailVerified) {
-        await cred.user.sendEmailVerification().catch(function(){});
-        openModal('verifyModal');
-      }
+      if (State.settings.requireEmailVerification !== false && !cred.user.emailVerified) { await cred.user.sendEmailVerification().catch(function(){}); openModal('verifyModal'); }
       closeModal('authModal');
+      showRewardPopup(State.settings.signupBonus || 100, t('ledger.signupBonus'));
     } catch (err) { toast('❌', err.message, 'error'); }
   });
 
@@ -228,7 +276,7 @@ function initAuthUI() {
   });
 
   el('googleLoginBtn').addEventListener('click', async function () {
-    if (State.settings.allowSignup === false) return toast('🚫', 'New signups are currently disabled.', 'warning');
+    if (State.settings.googleSignin === false) return toast('🚫', 'Google sign-in is disabled.', 'warning');
     try {
       const prov = new firebase.auth.GoogleAuthProvider();
       const cred = await auth.signInWithPopup(prov);
@@ -318,97 +366,13 @@ async function updateBalanceUI() {
   set('refTotal', pf.referralCount || 0); set('refEarned', fmtNum(pf.referralEarned || 0)); set('refActive', pf.referralCount || 0);
 }
 
-
-/* ---------------- TRUSTED ADS ---------------- */
-function addExternalScript(src, attrs) {
-  return new Promise(function(resolve,reject){
-    if (document.querySelector('script[data-rewords-ad-src="'+src+'"]')) return resolve();
-    var sc=document.createElement('script'); sc.src=src; sc.async=true; sc.setAttribute('data-rewords-ad-src',src);
-    Object.keys(attrs||{}).forEach(function(k){ if(attrs[k] !== null && attrs[k] !== undefined) sc.setAttribute(k,String(attrs[k])); });
-    sc.onload=resolve; sc.onerror=reject; document.head.appendChild(sc);
-  });
-}
-function renderAdSlot(id, html) {
-  var elx=el(id); if(elx) elx.innerHTML=html||'';
-}
-async function initTrustedAds() {
-  var ads=State.settings.ads||{}, nw=ads.networks||{}, pl=ads.placements||{};
-  // Hide all ad placements first when disabled.
-  document.querySelectorAll('[data-ad-placement]').forEach(function(x){ x.style.display=''; });
-  // Adsterra banner
-  if (nw.adsterra !== false && pl.banner468 !== false) {
-    renderAdSlot('ad-home-banner','');
-    var wrap=el('ad-home-banner');
-    if(wrap){
-      var opt=document.createElement('script'); opt.textContent="var atOptions={key:'c351ac7c1200d215d77a5b0a74a395fe',format:'iframe',height:60,width:468,params:{}};";
-      wrap.appendChild(opt);
-      var js=document.createElement('script'); js.src='https://www.highperformanceformat.com/c351ac7c1200d215d77a5b0a74a395fe/invoke.js'; wrap.appendChild(js);
-    }
-  }
-  // Adsterra Native
-  if (nw.adsterra !== false && pl.native !== false) {
-    ['ad-home-native','ad-games-native','ad-watch-native'].forEach(function(id,idx){
-      var wrap=el(id); if(!wrap) return;
-      var c='container-df7130eb24354334e85ee01b5be086f2-'+idx;
-      wrap.innerHTML='<div id="'+c+'"></div>';
-      var sc=document.createElement('script'); sc.async=true; sc.setAttribute('data-cfasync','false');
-      sc.src='https://pl30913455.effectivecpmnetwork.com/df7130eb24354334e85ee01b5be086f2/invoke.js'; wrap.prepend(sc);
-    });
-  }
-  // Monetag MultiTag
-  if (nw.monetag !== false) {
-    await addExternalScript('https://quge5.com/88/tag.min.js', {'data-zone':'271240','data-cfasync':'false'}).catch(function(){});
-  }
-  // HilltopAds
-  if (nw.hilltop === true) {
-    await addExternalScript('https://infamous-maximum.com/cKDd9O6.bL2T5/lZS/WQQe9INdzOM/z/MjzNYv0qM/S/0_3FMhzmMwz/NdjIQ/1U', {'referrerpolicy':'no-referrer-when-downgrade'}).catch(function(){});
-  }
-  // Adsterra Popunder / Social Bar are intentionally disabled by default.
-  if (nw.adsterra !== false && pl.popunder === true) {
-    await addExternalScript('https://pl30913454.effectivecpmnetwork.com/2e/8e/1d/2e8e1d21821e52cabb4dca2fb31ae1ed.js', {}).catch(function(){});
-  }
-  if (nw.adsterra !== false && pl.socialbar === true) {
-    await addExternalScript('https://pl30913456.effectivecpmnetwork.com/32/aa/62/32aa624c58a1d6ea82421be6e9c8d4b4.js', {}).catch(function(){});
-  }
-  // Smartlinks / Direct Links
-  var sl=el('ad-smartlink');
-  if(sl){
-    if(nw.adsterra !== false && pl.smartlink !== false){
-      sl.href='https://www.effectivecpmnetwork.com/z4tps2vcr?key=4f9ed7a11b0bab57c48fbe6c874b5a18';
-      sl.style.display='';
-    } else sl.style.display='none';
-  }
-  var ml=el('monetag-direct-link');
-  if(ml){
-    ml.href='https://omg10.com/4/11605558';
-    ml.style.display = (nw.monetag !== false && pl.monetagDirect !== false) ? '' : 'none';
-  }
-  // Future PopAds placeholder: no code is activated without official PopAds code.
-  if(nw.popads === true) toast('PopAds','PopAds is enabled in settings but waiting for its official placement code.','info');
-}
-function applyMaintenanceGate() {
-  var ov=el('maintenanceOverlay'); if(!ov) return;
-  ov.hidden=!isMaintenance();
-  document.body.classList.toggle('maintenance-active',isMaintenance());
-  if(isMaintenance()) {
-    document.querySelectorAll('[data-nav]').forEach(function(x){ x.classList.add('maintenance-disabled'); });
-  }
-  var r=el('maintenanceRetryBtn'); if(r && !r._bound){r._bound=true;r.addEventListener('click',function(){location.reload();});}
-}
-
 /* ---------------- DATA ---------------- */
 async function loadSettings() {
   try {
     const d = await db.collection('settings').doc('global').get();
     if (d.exists) State.settings = d.data();
   } catch (e) { }
-  State.settings = Object.assign({
-    signupBonus:100,minWithdraw:10000,coinRate:10000,adReward:120,adDailyCap:15,
-    withdrawalFeePct:1,referralPercent:10,allowSignup:true,maintenance:false,
-    ads:{mode:'production',networks:{adsterra:true,monetag:true,hilltop:true,popads:false},
-    placements:{banner468:true,native:true,popunder:false,socialbar:false,smartlink:true,monetagDirect:true}},
-    siteUrl: location.origin + location.pathname
-  }, State.settings);
+  State.settings = Object.assign({ signupBonus: 100, minWithdraw: 10000, coinRate: 10000, adReward: 120, adDailyCap: 15, withdrawalFeePct: 1, referralPercent: 10, siteUrl: location.origin + location.pathname, maintenance: false, allowNewSignups: true, requireEmailVerification: true, googleSignin: true, ads: {adsterra468:true,adsterraNative:true,adsterraPopunder:true,adsterraSocialBar:true,adsterraSmartlink:true,monetagTag:true,monetagDirect:true,hilltop:true,popads:false,adReward:false} }, State.settings);
 }
 async function loadCatalog() {
   function get(n) { return colRef(n).get().then(function (s) { return s.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); }); }).catch(function () { return []; }); }
@@ -769,9 +733,11 @@ function renderPromo() {
 }
 function renderEvents() {
   const card = function (ev) { return '<div class="card event-card reveal in"><div class="ev-badge">' + (ev.icon || '🎉') + '</div><div class="ev-name">' + esc(ev.title) + '</div><div class="ev-sub">' + esc(ev.subtitle || '') + '</div></div>'; };
-  el('activeEventsGrid').innerHTML = State.events.filter(function (e) { return e.status === 'active'; }).map(card).join('') || '';
-  el('upcomingEventsGrid').innerHTML = State.events.filter(function (e) { return e.status === 'upcoming'; }).map(card).join('') || '';
-  el('pastEventsGrid').innerHTML = State.events.filter(function (e) { return e.status === 'ended'; }).map(card).join('') || '';
+  var ag=el('activeEventsGrid'), ap=el('eventsActivePageGrid'), ug=el('upcomingEventsGrid'), pg=el('pastEventsGrid');
+  var active=State.events.filter(function(e){return e.status==='active';}).map(card).join('') || '';
+  if(ag) ag.innerHTML=active; if(ap) ap.innerHTML=active;
+  if(ug) ug.innerHTML=State.events.filter(function(e){return e.status==='upcoming';}).map(card).join('') || '';
+  if(pg) pg.innerHTML=State.events.filter(function(e){return e.status==='ended';}).map(card).join('') || '';
 }
 function renderBlog() {
   const grid = el('blogGrid'); if (!grid) return;
@@ -781,7 +747,7 @@ function renderBlog() {
 function renderHistory() { if (!State.user) return; renderTxList('all'); }
 function renderOffline() { if (!State.user) return; }
 function renderMore() {
-  const g = el('kbGrid');
+  const g = el('moreGrid');
   if (g) g.innerHTML = [['faq','❓'],['support','🎧'],['terms','📜'],['privacy','🔒'],['antifraud','🛡️'],['blog','📰'],['events','🎉'],['promo','🎟️']].map(function (x) { return '<button class="kb-item" data-nav="' + x[0] + '"><span class="kb-ico">' + x[1] + '</span><span class="kb-label">' + x[0] + '</span></button>'; }).join('');
 }
 
@@ -809,9 +775,14 @@ function openRewardModal(id) {
   openModal('confirmModal');
 }
 
+/* ---------------- PLATFORM GUARDS ---------------- */
+function isMaintenanceForUser(){ return State.settings.maintenance === true && !State.profile?.isAdmin; }
+function guardPlatform(action){ if(isMaintenanceForUser()){ toast('🛠️','The site is currently under maintenance. '+(action||''),'warning'); return false; } return true; }
+
 /* ---------------- EARNING ACTIONS ---------------- */
 async function completeOffer(id) {
   if (!State.user) return;
+  if (!guardPlatform()) return;
   closeModal('offerModal');
   const o = State.offers.find(function (x) { return x.id === id; }) || State.games.find(function (x) { return x.id === id; });
   if (!o) return;
@@ -825,6 +796,7 @@ async function completeOffer(id) {
 }
 async function completeSurvey(id) {
   if (!State.user) return;
+  if (!guardPlatform()) return;
   closeModal('surveyModal');
   const s = State.surveys.find(function (x) { return x.id === id; });
   if (!s) return;
@@ -835,8 +807,8 @@ async function completeSurvey(id) {
   showRewardPopup(coins, s.title || '');
 }
 async function redeemReward(id) {
-  if (blockDuringMaintenance()) return;
   if (!State.user) return;
+  if (!guardPlatform()) return;
   const r = State.rewards.find(function (x) { return x.id === id; });
   if (!r) return;
   const cost = r.price || 0;
@@ -849,24 +821,32 @@ async function redeemReward(id) {
   toast('🎁', t('rewards.ordered'), 'success'); celebrate();
 }
 async function watchAd() {
-  if (blockDuringMaintenance()) return;
-  if (!requireVerifiedUser()) return;
-  var pf=State.profile||{}, cap=State.settings.adDailyCap||15;
-  var used=(pf.adsDate===todayKey())?(pf.adsWatchedToday||0):0;
-  if(used>=cap) return toast('⚠️',t('watch.capReached'),'warning');
-  var btn=el('watchAdBtn'); if(btn) btn.disabled=true;
-  var smart=el('ad-smartlink');
-  if(smart && smart.style.display!=='none') {
-    window.open(smart.href,'_blank','noopener,noreferrer');
-    toast('📺','Ad opened. Reward is issued only after verified provider confirmation.','info');
-  } else {
-    toast('📺','No verified rewarded-ad callback is configured yet.','info');
-  }
-  setTimeout(function(){ if(btn) btn.disabled=false; },1500);
+  if (!State.user) return;
+  if (!guardPlatform()) return;
+  const pf = State.profile || {};
+  const cap = State.settings.adDailyCap || 15;
+  const used = (pf.adsDate === todayKey()) ? (pf.adsWatchedToday || 0) : 0;
+  if (used >= cap) return toast('⚠️', t('watch.capReached'), 'warning');
+  const btn = el('watchAdBtn'); if (btn) btn.disabled = true;
+  const cd = el('watchCountdownValue');
+  let n = 5;
+  const iv = setInterval(async function () {
+    if (cd) cd.textContent = n;
+    if (n <= 0) {
+      clearInterval(iv);
+      if (btn) btn.disabled = false;
+      const reward = State.settings.adReward || 120;
+      await addLedger(State.user.uid, 'ad', t('ledger.adReward'), reward, 'completed', 'AD-' + uid().slice(0, 6));
+      await colRef('users').doc(State.user.uid).update({ adsWatchedToday: used + 1, adsDate: todayKey(), xp: increment(2) }).catch(function () {});
+      updateBalanceUI(); renderWatch();
+      showRewardPopup(reward, t('ledger.adReward'));
+    }
+    n--;
+  }, 1000);
 }
 async function claimDaily() {
-  if (blockDuringMaintenance()) return;
   if (!State.user) return;
+  if (!guardPlatform()) return;
   const pf = State.profile || {};
   if (pf.lastClaimDate === todayKey()) return toast('ℹ️', t('daily.claimed'), 'info');
   let streak = pf.streak || 0;
@@ -885,8 +865,8 @@ async function claimDaily() {
   showRewardPopup(reward, 'Day ' + streak);
 }
 async function spinWheel() {
-  if (blockDuringMaintenance()) return;
   if (!State.user) return;
+  if (!guardPlatform()) return;
   const pf = State.profile || {};
   if (pf.wheelSpunDate === todayKey()) return toast('ℹ️', t('daily.wheelSpun'), 'info');
   const wheel = el('spinWheel');
@@ -901,8 +881,8 @@ async function spinWheel() {
   }, 4200);
 }
 async function scratchCard() {
-  if (blockDuringMaintenance()) return;
   if (!State.user) return;
+  if (!guardPlatform()) return;
   const pf = State.profile || {};
   if (pf.scratchDate === todayKey()) return toast('ℹ️', t('daily.scratchDone'), 'info');
   const reward = [50, 100, 150, 200, 300][Math.floor(Math.random() * 5)];
@@ -914,6 +894,7 @@ async function scratchCard() {
 }
 async function openMystery() {
   if (!State.user) return;
+  if (!guardPlatform()) return;
   const pf = State.profile || {};
   if (pf.mysteryDate === todayKey()) return toast('ℹ️', t('daily.mysteryDone'), 'info');
   const reward = [100, 200, 300, 500, 1000][Math.floor(Math.random() * 5)];
@@ -924,6 +905,7 @@ async function openMystery() {
 }
 async function openTreasure() {
   if (!State.user) return;
+  if (!guardPlatform()) return;
   const pf = State.profile || {};
   if (pf.treasureDate === todayKey()) return toast('ℹ️', t('daily.treasureDone'), 'info');
   const reward = 250 + Math.floor(Math.random() * 3) * 250;
@@ -934,6 +916,7 @@ async function openTreasure() {
 }
 async function dailyAdBonus() {
   if (!State.user) return;
+  if (!guardPlatform()) return;
   const pf = State.profile || {};
   if (pf.adBonusDate === todayKey()) return toast('ℹ️', 'Already claimed', 'info');
   await addLedger(State.user.uid, 'daily', t('ledger.adBonus'), 300, 'completed', 'ADB-' + uid().slice(0, 6));
@@ -942,11 +925,13 @@ async function dailyAdBonus() {
 }
 async function interstitialReward() {
   if (!State.user) return;
+  if (!guardPlatform()) return;
   await addLedger(State.user.uid, 'ad', t('ledger.interstitial'), 200, 'completed', 'INT-' + uid().slice(0, 6));
   updateBalanceUI(); showRewardPopup(200, t('ledger.interstitial'));
 }
 async function confirmTopup() {
   if (!State.user) return;
+  if (!guardPlatform()) return;
   const game = document.querySelector('#topupGameList .reward-item.selected');
   const pkg = document.querySelector('#topupPackageGrid .package.selected');
   const pid = (el('topupPlayerId') || {}).value || '';
@@ -959,8 +944,8 @@ async function confirmTopup() {
   updateBalanceUI(); toast('⚡', t('topup.success'), 'success'); celebrate();
 }
 async function requestWithdrawal() {
-  if (blockDuringMaintenance()) return;
   if (!State.user) return;
+  if (!guardPlatform()) return;
   const w = State.wallet || { coins: 0, pending: 0 };
   const min = State.settings.minWithdraw || 10000;
   const amount = parseFloat((el('wdAmount') || {}).value) || 0;
@@ -1007,6 +992,7 @@ async function clearNotifs() {
 async function copyRefLink() { const i = el('refLinkInput'); if (i) await copyText(i.value); toast('🔗', t('referral.copied'), 'success'); }
 async function applyRefCode() {
   if (!State.user) return;
+  if (!guardPlatform()) return;
   const code = ((el('refCodeInput') || {}).value || '').trim().toUpperCase();
   if (!code) return;
   const pf = State.profile || {};
@@ -1159,16 +1145,26 @@ async function boot() {
   initNavigation();
   initGlobalActions();
   await loadSettings();
-  applyMaintenanceGate();
-  await initTrustedAds();
+  State.profile = null;
   await loadCatalog();
+  mountAds();
+  renderAdControlLinks();
   watchUser();
   watchCatalog();
   navigate('home');
   revealFix();
+  renderMaintenanceOverlay();
   const params = new URLSearchParams(location.search);
   const ref = params.get('ref');
   if (ref) { const i = el('signupReferralCode'); if (i) i.value = ref; const c = el('signupReferral'); if (c) c.checked = true; const w = el('referralCodeWrap'); if (w) w.classList.remove('hidden'); }
 }
+function renderMaintenanceOverlay(){
+  let x=el('maintenanceOverlay');
+  if(State.settings.maintenance && !State.profile?.isAdmin){
+    if(!x){ x=document.createElement('div'); x.id='maintenanceOverlay'; x.innerHTML='<div class="maintenance-card"><div class="maintenance-icon">🛠️</div><h2>Under Maintenance</h2><p>We are updating the platform. Please come back soon.</p></div>'; document.body.appendChild(x); }
+    x.style.display='grid'; document.body.classList.add('maintenance-active');
+  } else if(x){ x.style.display='none'; document.body.classList.remove('maintenance-active'); }
+}
+
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
 else boot();
