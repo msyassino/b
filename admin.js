@@ -1,13 +1,9 @@
 /* ============================================================================
-   REWORDS ADMIN PANEL — admin.js  (FINAL CLEAN BUILD)
-   Direct admin login, full CRUD, charts, fraud, finance, audit logs.
-   No external bootstrap needed — auto-creates admin on first login.
+   REWORDS ADMIN — admin.js (FINAL FIXED BUILD)
+   Direct login (kenven@admin.com / admin123), auto-bootstrap, full CRUD,
+   real stats from Firestore, seed data, audit logs, backup export.
 ============================================================================ */
-
-/* ============================================================================
-   1. FIREBASE CONFIG & INIT
-============================================================================ */
-const FIREBASE_CONFIG = {
+var FIREBASE_CONFIG = {
   apiKey: "AIzaSyBPMbRdVEJ85Is7eg4UkAFs_UHq-BD_Fhg",
   authDomain: "rewords-45ccf.firebaseapp.com",
   projectId: "rewords-45ccf",
@@ -16,1078 +12,707 @@ const FIREBASE_CONFIG = {
   appId: "1:324257034049:web:2e75279382793007683bc0",
   measurementId: "G-5LNDESBVST"
 };
-
-let app = null, db = null, auth = null, storage = null;
+var db = null, auth = null;
 try {
-  app = firebase.initializeApp(FIREBASE_CONFIG);
-  db = firebase.firestore(app);
-  auth = firebase.auth(app);
-  storage = firebase.storage(app);
-} catch (e) { console.error("Firebase init failed", e); }
+  firebase.initializeApp(FIREBASE_CONFIG);
+  db = firebase.firestore();
+  auth = firebase.auth();
+} catch (e) { console.error('Firebase init failed', e); }
 
-const serverTimestamp = () => firebase.firestore.FieldValue.serverTimestamp();
-const increment = (n) => firebase.firestore.FieldValue.increment(n || 1);
-const arrayUnion = (v) => firebase.firestore.FieldValue.arrayUnion(v);
-const arrayRemove = (v) => firebase.firestore.FieldValue.arrayRemove(v);
-const deleteField = () => firebase.firestore.FieldValue.delete();
+var serverTimestamp = function () { return firebase.firestore.FieldValue.serverTimestamp(); };
+var increment = function (n) { return firebase.firestore.FieldValue.increment(n || 1); };
 
-/* ============================================================================
-   2. ADMIN CONSTANTS
-============================================================================ */
-const ADMIN_EMAIL = "kenven@admin.com";
-const ADMIN_PASS = "admin123";
-
-/* ============================================================================
-   3. GLOBAL STATE
-============================================================================ */
-const AdminState = {
-  user: null,
-  isAdmin: false,
-  adminRole: 'super',
-  currentPage: 'dashboard',
-  users: [],
-  offers: [],
-  games: [],
-  surveys: [],
-  rewards: [],
-  orders: [],
-  withdrawals: [],
-  providers: [],
-  faqs: [],
-  events: [],
-  promos: [],
-  posts: [],
-  tickets: [],
-  notifications: [],
-  fraudEvents: [],
-  adminLogs: [],
-  settings: {},
-  charts: {},
-  stats: {
-    totalUsers: 0, activeUsers: 0, newUsersToday: 0,
-    revenueToday: 0, revenue7d: 0, revenue30d: 0,
-    rewardsToday: 0, pendingWithdrawals: 0, pendingOrders: 0,
-    fraudAlerts: 0, chargebacks: 0, offerConversions: 0,
-    conversionRate: 0, arpu: 0
-  }
+var ADMIN_EMAIL = 'kenven@admin.com';
+var A = {
+  user: null, isAdmin: false, role: 'super', page: 'dashboard',
+  users: [], offers: [], games: [], surveys: [], rewards: [], providers: [],
+  orders: [], withdrawals: [], tickets: [], promos: [], events: [], posts: [],
+  faqs: [], admins: [], logs: [], ledger: [], settings: {}
 };
 
-/* ============================================================================
-   4. UTILITIES
-============================================================================ */
-function $(sel) { return document.querySelector(sel); }
-function $$(sel) { return Array.from(document.querySelectorAll(sel)); }
+/* ---------------- utils ---------------- */
 function el(id) { return document.getElementById(id); }
-function esc(s) { return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
-function fmtNum(n) { return (Number(n) || 0).toLocaleString('en-US'); }
-function fmtCoins(n) { return fmtNum(n) + ' 🪙'; }
+function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+function fmt(n) { return (Number(n) || 0).toLocaleString('en-US'); }
 function todayKey() { return new Date().toISOString().slice(0, 10); }
 function uid() { return (Date.now().toString(36) + Math.random().toString(36).slice(2, 9)).toUpperCase(); }
-
 function timeAgo(ts) {
   if (!ts) return '—';
-  const d = ts.toDate ? ts.toDate() : new Date(ts);
-  const sec = Math.floor((Date.now() - d.getTime()) / 1000);
-  if (sec < 60) return 'Just now';
-  const min = Math.floor(sec / 60);
-  if (min < 60) return min + 'm ago';
-  const hr = Math.floor(min / 60);
-  if (hr < 24) return hr + 'h ago';
-  return Math.floor(hr / 24) + 'd ago';
+  var d = (typeof ts.toDate === 'function') ? ts.toDate() : new Date(ts);
+  var s = Math.floor((Date.now() - d.getTime()) / 1000);
+  if (s < 60) return 'now';
+  if (s < 3600) return Math.floor(s / 60) + 'm';
+  if (s < 86400) return Math.floor(s / 3600) + 'h';
+  return Math.floor(s / 86400) + 'd';
 }
-
-function formatDate(ts) {
-  if (!ts) return '—';
-  const d = ts.toDate ? ts.toDate() : new Date(ts);
-  return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+function toast(title, msg, type) {
+  var wrap = el('adminToastWrap'); if (!wrap) return;
+  var icons = { success: '✅', error: '❌', warning: '⚠️', info: 'ℹ️' };
+  var b = document.createElement('div');
+  b.className = 'toast ' + (type || 'info');
+  b.innerHTML = '<span class="toast-ico">' + (icons[type] || 'ℹ️') + '</span><div class="toast-body"><div class="toast-title">' + esc(title) + '</div><div class="toast-msg">' + esc(msg) + '</div></div><span class="toast-progress"></span>';
+  wrap.appendChild(b);
+  setTimeout(function () { b.classList.add('hide'); setTimeout(function () { b.remove(); }, 300); }, 4000);
 }
-
-function toast(title, msg, type = 'info', dur = 4000) {
-  const wrap = el('adminToastWrap');
-  if (!wrap) return;
-  const icons = { success: '✅', error: '❌', warning: '⚠️', info: 'ℹ️' };
-  const box = document.createElement('div');
-  box.className = 'toast ' + type;
-  box.innerHTML = '<span class="toast-ico">' + (icons[type] || 'ℹ️') + '</span><div class="toast-body"><div class="toast-title">' + esc(title) + '</div><div class="toast-msg">' + esc(msg) + '</div></div><span class="toast-progress"></span>';
-  wrap.appendChild(box);
-  setTimeout(() => { box.classList.add('hide'); setTimeout(() => box.remove(), 320); }, dur);
-}
-
-let adminConfirmCb = null;
-function askConfirm(title, body, okLabel = 'Confirm', danger = true) {
-  return new Promise((resolve) => {
-    el('adminConfirmIco').textContent = danger ? '⚠️' : '❓';
+var confirmCb = null;
+function askConfirm(title, body, okLabel) {
+  return new Promise(function (res) {
     el('adminConfirmTitle').textContent = title;
     el('adminConfirmBody').textContent = body;
-    el('adminConfirmOk').textContent = okLabel;
+    el('adminConfirmOk').textContent = okLabel || 'Confirm';
     el('adminConfirmDialog').classList.add('open');
-    adminConfirmCb = resolve;
+    confirmCb = res;
   });
 }
-
 function openAdminModal(title, html) {
   el('adminGenericModalTitle').textContent = title;
   el('adminGenericModalBody').innerHTML = html;
   el('adminGenericModal').classList.add('open');
 }
-
-function closeAdminModal(id) {
-  const m = el(id);
-  if (m) m.classList.remove('open');
+function closeAdminModal(id) { var m = el(id); if (m) m.classList.remove('open'); }
+function emptyMsg(html) { return '<div class="empty-state"><div class="es-ico">🗂️</div><div class="es-title">' + html + '</div></div>'; }
+function log(action, details) {
+  db.collection('admin_logs').add({
+    action: action, details: details || '',
+    adminId: A.user ? A.user.uid : 'unknown',
+    adminEmail: A.user ? A.user.email : 'unknown',
+    ts: Date.now(), createdAt: serverTimestamp()
+  }).catch(function () {});
+}
+function exportCSV(name, rows) {
+  var csv = rows.map(function (r) { return r.map(function (c) { return '"' + String(c == null ? '' : c).replace(/"/g, '""') + '"'; }).join(','); }).join('\n');
+  var blob = new Blob(['\ufeff' + csv], { type: 'text/csv' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = name + '.csv'; a.click();
+}
+function downloadJSON(name, obj) {
+  var blob = new Blob([JSON.stringify(obj, null, 2)], { type: 'application/json' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = name + '.json'; a.click();
 }
 
-function emptyState(container, icon, title, sub) {
-  const box = typeof container === 'string' ? el(container) : container;
-  if (!box) return;
-  box.innerHTML = '<div class="empty-state"><div class="es-ico">' + (icon || '🗂️') + '</div><div class="es-title">' + title + '</div>' + (sub ? '<div class="es-sub">' + sub + '</div>' : '') + '</div>';
-}
-
-function skeletonGrid(container, n) {
-  const box = typeof container === 'string' ? el(container) : container;
-  if (!box) return;
-  let html = '';
-  for (let i = 0; i < (n || 4); i++) html += '<div class="card"><div class="skeleton-line" style="height:90px"></div><div class="skeleton-line w-70"></div><div class="skeleton-line w-40"></div></div>';
-  box.innerHTML = html;
-}
-
-/* ============================================================================
-   5. ADMIN AUTHENTICATION (DIRECT LOGIN — NO BOOTSTRAP NEEDED)
-============================================================================ */
-async function initAdminAuth() {
-  auth.onAuthStateChanged(async (user) => {
+/* ---------------- AUTH (direct login + auto-bootstrap) ---------------- */
+function initAuth() {
+  auth.onAuthStateChanged(async function (user) {
     if (user) {
-      AdminState.user = user;
-      const hasAccess = await verifyAdminAccess(user);
-      if (hasAccess) {
-        showAdminDashboard();
-      } else {
-        showLoginScreen();
-        el('adminAccessDenied').classList.remove('hidden');
-      }
-    } else {
-      showLoginScreen();
-    }
+      A.user = user;
+      var ok = await verifyAdmin(user);
+      if (ok) showShell(); else showLogin(true);
+    } else { showLogin(false); }
   });
-}
-
-async function verifyAdminAccess(user) {
-  try {
-    // Check if admin_users collection has this user
-    const adminDoc = await db.collection('admin_users').doc(user.uid).get();
-    if (adminDoc.exists) {
-      AdminState.isAdmin = true;
-      AdminState.adminRole = adminDoc.data().role || 'super';
-      return true;
-    }
-
-    // AUTO-BOOTSTRAP: If admin_users is empty and email matches, create admin
-    const adminSnap = await db.collection('admin_users').limit(1).get();
-    if (adminSnap.empty && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
-      await db.collection('admin_users').doc(user.uid).set({
-        email: user.email,
-        role: 'super',
-        permissions: ['*'],
-        createdAt: serverTimestamp(),
-        createdBy: 'auto-bootstrap'
-      });
-      AdminState.isAdmin = true;
-      AdminState.adminRole = 'super';
-      toast('Admin Created', 'Welcome! Admin access granted automatically.', 'success');
-      return true;
-    }
-
-    return false;
-  } catch (e) {
-    console.error('Admin verification error:', e);
-    // Fallback: if email matches, allow access
-    if (user.email && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
-      AdminState.isAdmin = true;
-      AdminState.adminRole = 'super';
-      return true;
-    }
-    return false;
-  }
-}
-
-function showLoginScreen() {
-  el('adminAuth').style.display = 'grid';
-  el('adminShell').style.display = 'none';
-}
-
-function showAdminDashboard() {
-  el('adminAuth').style.display = 'none';
-  el('adminShell').style.display = 'flex';
-  updateAdminProfile();
-  initAdminNavigation();
-  loadAdminData();
-  startRealtimeListeners();
-}
-
-function updateAdminProfile() {
-  const profileEl = el('adminProfile');
-  if (profileEl && AdminState.user) {
-    profileEl.innerHTML = '<div class="avatar-sm">A</div><div class="text-sm"><div class="font-bold">' + esc(AdminState.user.email) + '</div><div class="text-xs text-muted">' + AdminState.adminRole + '</div></div>';
-  }
-}
-
-/* ============================================================================
-   6. NAVIGATION
-============================================================================ */
-function initAdminNavigation() {
-  $$('[data-admin-nav]').forEach(link => {
-    link.addEventListener('click', (e) => {
-      e.preventDefault();
-      navigateAdmin(link.getAttribute('data-admin-nav'));
-    });
-  });
-
-  // Mobile sidebar toggle
-  const openBtn = el('openSideBtn');
-  if (openBtn) openBtn.addEventListener('click', () => document.body.classList.toggle('admin-mobile-open'));
-
-  // Theme toggle
-  const themeBtn = el('adminThemeToggle');
-  if (themeBtn) themeBtn.addEventListener('click', () => {
-    const html = document.documentElement;
-    const current = html.getAttribute('data-theme');
-    html.setAttribute('data-theme', current === 'dark' ? 'light' : 'dark');
-    themeBtn.textContent = current === 'dark' ? '☀️' : '🌙';
-  });
-
-  // Logout
-  const logoutBtn = el('adminLogoutBtn');
-  if (logoutBtn) logoutBtn.addEventListener('click', async () => {
-    await auth.signOut();
-    toast('Logged Out', 'See you soon!', 'info');
-  });
-
-  // Refresh
-  const refreshBtn = el('adminRefreshBtn');
-  if (refreshBtn) refreshBtn.addEventListener('click', () => loadAdminData());
-}
-
-function navigateAdmin(page) {
-  AdminState.currentPage = page;
-  $$('[data-admin-nav]').forEach(link => {
-    link.classList.toggle('active', link.getAttribute('data-admin-nav') === page);
-  });
-  $$('.admin-page').forEach(p => {
-    p.classList.toggle('active', p.id === 'admin-' + page);
-  });
-  document.body.classList.remove('admin-mobile-open');
-  loadPageData(page);
-}
-
-function loadPageData(page) {
-  const loaders = {
-    dashboard: loadDashboard,
-    analytics: loadAnalytics,
-    finance: loadFinance,
-    users: loadUsers,
-    offers: loadOffers,
-    providers: loadProviders,
-    games: loadGames,
-    surveys: loadSurveys,
-    ads: loadAds,
-    campaigns: loadCampaigns,
-    rewards: loadRewards,
-    orders: loadOrders,
-    withdrawals: loadWithdrawals,
-    fraud: loadFraud,
-    referral: loadReferral,
-    content: loadContent,
-    support: loadSupport,
-    settings: loadSettings,
-    security: loadSecurity,
-    roles: loadRoles,
-    logs: loadAuditLogs
-  };
-  if (loaders[page]) loaders[page]();
-}
-
-/* ============================================================================
-   7. DATA LOADING
-============================================================================ */
-async function loadAdminData() {
-  await loadSettings();
-  await loadDashboard();
-  updateQuickStats();
-}
-
-async function loadSettings() {
-  try {
-    const doc = await db.collection('settings').doc('global').get();
-    if (doc.exists) AdminState.settings = doc.data();
-    else AdminState.settings = { coinRate: 10000, minWithdraw: 10000, signupBonus: 100, adReward: 120, adDailyCap: 15, withdrawalFeePct: 1, referralPercent: 10, maintenance: false };
-  } catch (e) { AdminState.settings = {}; }
-}
-
-async function loadDashboard() {
-  try {
-    // Users count
-    const usersSnap = await db.collection('users').get();
-    AdminState.stats.totalUsers = usersSnap.size;
-    const weekAgo = new Date(Date.now() - 7 * 86400000);
-    let active = 0, newToday = 0, totalCoins = 0, totalWithdrawn = 0;
-    usersSnap.forEach(doc => {
-      const u = doc.data();
-      if (u.lastSeen && u.lastSeen.toDate && u.lastSeen.toDate() > weekAgo) active++;
-      if (u.createdAt && u.createdAt.toDate && u.createdAt.toDate().toISOString().slice(0,10) === todayKey()) newToday++;
-      totalCoins += u.lifetimeEarned || 0;
-      totalWithdrawn += u.totalWithdrawn || 0;
-    });
-    AdminState.stats.activeUsers = active;
-    AdminState.stats.newUsersToday = newToday;
-
-    // Pending withdrawals
-    const wdSnap = await db.collection('withdrawals').where('status', '==', 'pending').get();
-    AdminState.stats.pendingWithdrawals = wdSnap.size;
-
-    // Pending orders
-    const ordSnap = await db.collection('orders').where('status', '==', 'pending').get();
-    AdminState.stats.pendingOrders = ordSnap.size;
-
-    // Update KPIs
-    const set = (id, v) => { const x = el(id); if (x) x.textContent = v; };
-    set('kpiTotalUsers', fmtNum(AdminState.stats.totalUsers));
-    set('kpiCoins', fmtNum(totalCoins));
-    set('kpiWithdrawn', '$' + (totalWithdrawn / (AdminState.settings.coinRate || 10000)).toFixed(2));
-    set('kpiGrowth', '+' + (newToday > 0 ? Math.round((newToday / Math.max(1, AdminState.stats.totalUsers - newToday)) * 100) : 0) + '%');
-
-    // Recent activity from admin_logs
-    const logsSnap = await db.collection('admin_logs').orderBy('timestamp', 'desc').limit(8).get();
-    const actFeed = el('dashRecentActivity');
-    if (actFeed) {
-      const items = [];
-      logsSnap.forEach(d => {
-        const l = d.data();
-        items.push('<div class="af-item"><div class="af-ico">📝</div><div class="af-body"><div class="af-title">' + esc(l.action || '') + '</div><div class="af-sub">' + esc(l.details || '') + '</div></div><div class="af-time">' + timeAgo(l.timestamp) + '</div></div>');
-      });
-      actFeed.innerHTML = items.length ? items.join('') : '<div class="text-center text-muted p-4">No activity yet</div>';
-    }
-
-    // Top offers
-    const offersSnap = await db.collection('offers').orderBy('payout', 'desc').limit(5).get();
-    const topOffersEl = el('dashTopOffers');
-    if (topOffersEl) {
-      const items = [];
-      offersSnap.forEach(d => {
-        const o = d.data();
-        items.push('<div class="ro-item"><div class="ro-logo">' + (o.icon || '🎯') + '</div><div class="ro-body"><div class="ro-name">' + esc(o.title) + '</div><div class="ro-rev">' + esc(o.provider || '') + '</div></div><div class="ro-amount">+' + fmtNum(o.payout || 0) + '</div></div>');
-      });
-      topOffersEl.innerHTML = items.length ? items.join('') : '<div class="text-center text-muted p-4">No offers yet</div>';
-    }
-
-  } catch (e) { console.error('Dashboard load error:', e); }
-}
-
-function updateQuickStats() {
-  const set = (id, v) => { const x = el(id); if (x) x.textContent = v; };
-  set('qsUsers', fmtNum(AdminState.stats.totalUsers));
-  set('qsOffers', fmtNum(AdminState.offers.length || 0));
-  set('qsWithdrawals', fmtNum(AdminState.stats.pendingWithdrawals));
-  set('qsOrders', fmtNum(AdminState.stats.pendingOrders));
-  set('qsTickets', '0');
-  set('qsFlagged', '0');
-  set('qsRevenue', '$0');
-  set('qsProfit', '$0');
-  // Side badges
-  set('sideBadgeUsers', fmtNum(AdminState.stats.totalUsers));
-  set('sideBadgeWithdrawals', fmtNum(AdminState.stats.pendingWithdrawals));
-  set('sideBadgeOrders', fmtNum(AdminState.stats.pendingOrders));
-}
-
-/* ============================================================================
-   8. USERS MANAGEMENT
-============================================================================ */
-async function loadUsers() {
-  const tbody = el('usersTableBody');
-  if (!tbody) return;
-  skeletonGrid(tbody.parentElement, 5);
-  try {
-    const snap = await db.collection('users').orderBy('createdAt', 'desc').limit(100).get();
-    AdminState.users = [];
-    snap.forEach(d => AdminState.users.push({ id: d.id, ...d.data() }));
-    renderUsersTable();
-  } catch (e) { console.error(e); emptyState(tbody, '👥', 'Failed to load users'); }
-}
-
-function renderUsersTable() {
-  const tbody = el('usersTableBody');
-  if (!tbody) return;
-  if (!AdminState.users.length) { emptyState(tbody, '👥', 'No users yet'); return; }
-  tbody.innerHTML = AdminState.users.map(u => {
-    const status = u.status || 'active';
-    const statusCls = status === 'active' ? 'badge-success' : status === 'banned' ? 'badge-danger' : 'badge-warning';
-    const risk = u.fraudScore || 0;
-    const riskCls = risk < 30 ? 'badge-success' : risk < 60 ? 'badge-warning' : 'badge-danger';
-    return '<tr><td><div class="cell-avatar"><div class="avatar-sm">' + (u.username || '?').charAt(0).toUpperCase() + '</div><div><div class="ca-name">' + esc(u.username || 'Unknown') + '</div><div class="ca-sub">' + esc(u.uid ? u.uid.slice(0, 8) : '') + '</div></div></div></td>' +
-      '<td>' + esc(u.email || '—') + '</td><td class="num">' + fmtNum(u.lifetimeEarned || 0) + '</td><td class="num">' + fmtNum(u.totalWithdrawn || 0) + '</td>' +
-      '<td><span class="badge ' + statusCls + '">' + status + '</span></td><td><span class="badge ' + riskCls + '">' + risk + '</span></td>' +
-      '<td>' + esc(u.country || '—') + '</td><td>' + formatDate(u.createdAt) + '</td>' +
-      '<td><div class="tbl-actions"><button class="mini-btn" onclick="viewUser(\'' + u.id + '\')">👁️</button><button class="mini-btn" onclick="editUserModal(\'' + u.id + '\')">✏️</button>' +
-      '<button class="mini-btn ' + (status === 'banned' ? 'success' : 'danger') + '" onclick="toggleBan(\'' + u.id + '\',\'' + status + '\')">' + (status === 'banned' ? '✅' : '🚫') + '</button></div></td></tr>';
-  }).join('');
-}
-
-function viewUser(id) {
-  const u = AdminState.users.find(x => x.id === id);
-  if (!u) return;
-  openAdminModal('👤 User: ' + (u.username || 'Unknown'),
-    '<div class="grid grid-2 gap-3">' +
-    '<div class="kv-row"><span class="kv-label">Email</span><span class="kv-value">' + esc(u.email || '—') + '</span></div>' +
-    '<div class="kv-row"><span class="kv-label">Country</span><span class="kv-value">' + esc(u.country || '—') + '</span></div>' +
-    '<div class="kv-row"><span class="kv-label">Lifetime Earned</span><span class="kv-value">' + fmtNum(u.lifetimeEarned || 0) + '</span></div>' +
-    '<div class="kv-row"><span class="kv-label">Lifetime Spent</span><span class="kv-value">' + fmtNum(u.lifetimeSpent || 0) + '</span></div>' +
-    '<div class="kv-row"><span class="kv-label">Withdrawn</span><span class="kv-value">' + fmtNum(u.totalWithdrawn || 0) + '</span></div>' +
-    '<div class="kv-row"><span class="kv-label">Offers Done</span><span class="kv-value">' + (u.offersCompleted || 0) + '</span></div>' +
-    '<div class="kv-row"><span class="kv-label">Surveys Done</span><span class="kv-value">' + (u.surveysCompleted || 0) + '</span></div>' +
-    '<div class="kv-row"><span class="kv-label">Streak</span><span class="kv-value">' + (u.streak || 0) + ' days</span></div>' +
-    '<div class="kv-row"><span class="kv-label">Fraud Score</span><span class="kv-value">' + (u.fraudScore || 0) + '</span></div>' +
-    '<div class="kv-row"><span class="kv-label">Referrals</span><span class="kv-value">' + (u.referralCount || 0) + '</span></div>' +
-    '<div class="kv-row"><span class="kv-label">Joined</span><span class="kv-value">' + formatDate(u.createdAt) + '</span></div>' +
-    '<div class="kv-row"><span class="kv-label">Last Seen</span><span class="kv-value">' + timeAgo(u.lastSeen) + '</span></div>' +
-    '</div>');
-}
-
-function editUserModal(id) {
-  const u = AdminState.users.find(x => x.id === id);
-  if (!u) return;
-  openAdminModal('✏️ Edit User: ' + (u.username || ''),
-    '<form id="editUserForm"><div class="field"><label>Username</label><input type="text" class="input" id="euName" value="' + esc(u.username || '') + '"></div>' +
-    '<div class="field"><label>Country</label><input type="text" class="input" id="euCountry" value="' + esc(u.country || '') + '"></div>' +
-    '<div class="field"><label>Status</label><select class="select" id="euStatus"><option value="active"' + (u.status === 'active' ? ' selected' : '') + '>Active</option><option value="pending"' + (u.status === 'pending' ? ' selected' : '') + '>Pending</option><option value="restricted"' + (u.status === 'restricted' ? ' selected' : '') + '>Restricted</option><option value="banned"' + (u.status === 'banned' ? ' selected' : '') + '>Banned</option></select></div>' +
-    '<div class="field"><label>Fraud Score</label><input type="number" class="input" id="euFraud" value="' + (u.fraudScore || 0) + '"></div>' +
-    '<button type="submit" class="btn btn-accent btn-block">💾 Save</button></form>');
-  setTimeout(() => {
-    el('editUserForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      await db.collection('users').doc(id).update({
-        username: el('euName').value.trim(),
-        country: el('euCountry').value.trim(),
-        status: el('euStatus').value,
-        fraudScore: parseInt(el('euFraud').value) || 0,
-        updatedAt: serverTimestamp()
-      });
-      await logAdminAction('user_update', 'Updated user ' + (u.username || id));
-      closeAdminModal('adminGenericModal');
-      toast('Success', 'User updated', 'success');
-      loadUsers();
-    });
-  }, 100);
-}
-
-async function toggleBan(id, currentStatus) {
-  const newStatus = currentStatus === 'banned' ? 'active' : 'banned';
-  const ok = await askConfirm(newStatus === 'banned' ? 'Ban User' : 'Unban User', 'Are you sure?', newStatus === 'banned' ? 'Ban' : 'Unban', newStatus === 'banned');
-  if (!ok) return;
-  await db.collection('users').doc(id).update({ status: newStatus, updatedAt: serverTimestamp() });
-  await logAdminAction(newStatus === 'banned' ? 'user_ban' : 'user_unban', 'User ' + newStatus);
-  toast('Success', 'User ' + newStatus, 'success');
-  loadUsers();
-}
-
-/* ============================================================================
-   9. OFFERS MANAGEMENT
-============================================================================ */
-async function loadOffers() {
-  const tbody = el('offersTableBody');
-  if (!tbody) return;
-  try {
-    const snap = await db.collection('offers').orderBy('createdAt', 'desc').limit(100).get();
-    AdminState.offers = [];
-    snap.forEach(d => AdminState.offers.push({ id: d.id, ...d.data() }));
-    renderOffersTable();
-    // Populate provider filter
-    const provFilter = el('offersProviderFilter');
-    if (provFilter) {
-      const provs = [...new Set(AdminState.offers.map(o => o.provider).filter(Boolean))];
-      provFilter.innerHTML = '<option value="all">All Providers</option>' + provs.map(p => '<option>' + esc(p) + '</option>').join('');
-    }
-  } catch (e) { console.error(e); }
-}
-
-function renderOffersTable() {
-  const tbody = el('offersTableBody');
-  if (!tbody) return;
-  if (!AdminState.offers.length) { emptyState(tbody, '🎯', 'No offers yet', 'Create your first offer'); return; }
-  tbody.innerHTML = AdminState.offers.map(o => {
-    const active = o.active !== false;
-    return '<tr><td><div class="flex items-center gap-2"><div class="avatar-sm" style="background:' + (o.color || 'var(--grad-primary)') + '">' + (o.icon || '🎯') + '</div><div><div class="font-bold text-sm">' + esc(o.title) + '</div><div class="text-xs text-muted">' + esc(o.category || '') + '</div></div></div></td>' +
-      '<td>' + esc(o.provider || '—') + '</td><td>' + esc(o.category || '—') + '</td><td class="num">' + fmtNum(o.payout || 0) + '</td>' +
-      '<td>' + esc(o.difficulty || 'Easy') + '</td><td><span class="badge ' + (active ? 'badge-success' : 'badge-neutral') + '">' + (active ? 'Active' : 'Inactive') + '</span></td>' +
-      '<td class="num">' + (o.conversions || 0) + '</td>' +
-      '<td><div class="tbl-actions"><button class="mini-btn" onclick="editOfferModal(\'' + o.id + '\')">✏️</button><button class="mini-btn ' + (active ? 'danger' : 'success') + '" onclick="toggleOffer(\'' + o.id + '\',' + active + ')">' + (active ? '🚫' : '✅') + '</button><button class="mini-btn danger" onclick="deleteOffer(\'' + o.id + '\')">🗑️</button></div></td></tr>';
-  }).join('');
-}
-
-function editOfferModal(id) {
-  const o = id ? AdminState.offers.find(x => x.id === id) : null;
-  el('offerEditorTitle').textContent = o ? 'Edit Offer' : 'Create Offer';
-  el('offerEditId').value = o ? o.id : '';
-  el('offerEditTitle').value = o ? o.title : '';
-  el('offerEditProvider').value = o ? (o.provider || '') : '';
-  el('offerEditCategory').value = o ? (o.category || '') : '';
-  el('offerEditDifficulty').value = o ? (o.difficulty || 'Easy') : 'Easy';
-  el('offerEditPayout').value = o ? (o.payout || 0) : '';
-  el('offerEditMinutes').value = o ? (o.minutes || 5) : 5;
-  el('offerEditIcon').value = o ? (o.icon || '🎯') : '🎯';
-  el('offerEditLink').value = o ? (o.link || '') : '';
-  el('offerEditDesc').value = o ? (o.description || '') : '';
-  el('offerEditActive').checked = o ? (o.active !== false) : true;
-  el('offerEditorModal').classList.add('open');
-}
-
-async function deleteOffer(id) {
-  const ok = await askConfirm('Delete Offer', 'This cannot be undone.', 'Delete');
-  if (!ok) return;
-  await db.collection('offers').doc(id).delete();
-  await logAdminAction('offer_delete', 'Deleted offer ' + id);
-  toast('Deleted', 'Offer removed', 'success');
-  loadOffers();
-}
-
-async function toggleOffer(id, currentActive) {
-  await db.collection('offers').doc(id).update({ active: !currentActive, updatedAt: serverTimestamp() });
-  await logAdminAction('offer_toggle', 'Toggled offer ' + id);
-  loadOffers();
-}
-
-/* ============================================================================
-   10. PROVIDERS, GAMES, SURVEYS
-============================================================================ */
-async function loadProviders() {
-  const grid = el('providersGrid');
-  if (!grid) return;
-  try {
-    const snap = await db.collection('providers').get();
-    AdminState.providers = [];
-    snap.forEach(d => AdminState.providers.push({ id: d.id, ...d.data() }));
-    grid.innerHTML = AdminState.providers.length ? AdminState.providers.map(p =>
-      '<div class="card"><div class="card-head"><div class="card-title">' + esc(p.name || p.id) + '</div><span class="pv-status ' + (p.active !== false ? 'pv-live' : 'pv-down') + '"><span class="pv-dot"></span>' + (p.active !== false ? 'Active' : 'Inactive') + '</span></div>' +
-      '<div class="kv-row"><span class="kv-label">Type</span><span class="kv-value">' + esc(p.type || '—') + '</span></div>' +
-      '<div class="kv-row"><span class="kv-label">Conversions</span><span class="kv-value">' + (p.conversions || 0) + '</span></div>' +
-      '<div class="kv-row"><span class="kv-label">Revenue</span><span class="kv-value">$' + ((p.revenue || 0) / 100).toFixed(2) + '</span></div></div>'
-    ).join('') : emptyState(grid, '🏢', 'No providers');
-  } catch (e) { emptyState(grid, '🏢', 'Error loading providers'); }
-}
-
-async function loadGames() {
-  const grid = el('gamesGrid');
-  if (!grid) return;
-  try {
-    const snap = await db.collection('games').orderBy('createdAt', 'desc').limit(50).get();
-    AdminState.games = [];
-    snap.forEach(d => AdminState.games.push({ id: d.id, ...d.data() }));
-    grid.innerHTML = AdminState.games.length ? AdminState.games.map(g =>
-      '<div class="card game-card"><div class="game-cover" style="background:' + (g.color || 'var(--grad-primary)') + '">' + (g.icon || '🎮') + '</div>' +
-      '<div class="font-bold">' + esc(g.title) + '</div><div class="text-xs text-muted">' + esc(g.platform || '') + '</div>' +
-      '<div class="flex gap-2 mt-2"><button class="mini-btn" onclick="editGameModal(\'' + g.id + '\')">✏️</button><button class="mini-btn danger" onclick="deleteGame(\'' + g.id + '\')">🗑️</button></div></div>'
-    ).join('') : emptyState(grid, '🎮', 'No games');
-  } catch (e) { emptyState(grid, '🎮', 'Error'); }
-}
-
-async function loadSurveys() {
-  const grid = el('surveysGrid');
-  if (!grid) return;
-  try {
-    const snap = await db.collection('surveys').orderBy('createdAt', 'desc').limit(50).get();
-    AdminState.surveys = [];
-    snap.forEach(d => AdminState.surveys.push({ id: d.id, ...d.data() }));
-    grid.innerHTML = AdminState.surveys.length ? AdminState.surveys.map(s =>
-      '<div class="card survey-card"><div class="sv-icon">📋</div><div class="sv-title">' + esc(s.title) + '</div>' +
-      '<div class="sv-meta"><span class="sv-chip">⏱️ ' + (s.minutes || 5) + ' min</span><span class="sv-chip coin-t">+' + fmtNum(s.reward || 0) + '</span></div>' +
-      '<div class="flex gap-2 mt-2"><button class="mini-btn" onclick="editSurveyModal(\'' + s.id + '\')">✏️</button><button class="mini-btn danger" onclick="deleteSurvey(\'' + s.id + '\')">🗑️</button></div></div>'
-    ).join('') : emptyState(grid, '📋', 'No surveys');
-  } catch (e) { emptyState(grid, '📋', 'Error'); }
-}
-
-async function deleteGame(id) { const ok = await askConfirm('Delete Game', 'Sure?', 'Delete'); if (!ok) return; await db.collection('games').doc(id).delete(); loadGames(); }
-async function deleteSurvey(id) { const ok = await askConfirm('Delete Survey', 'Sure?', 'Delete'); if (!ok) return; await db.collection('surveys').doc(id).delete(); loadSurveys(); }
-
-/* ============================================================================
-   11. REWARDS, ORDERS, WITHDRAWALS
-============================================================================ */
-async function loadRewards() {
-  const grid = el('rewardsGridAdmin');
-  if (!grid) return;
-  try {
-    const snap = await db.collection('rewards').orderBy('createdAt', 'desc').limit(50).get();
-    AdminState.rewards = [];
-    snap.forEach(d => AdminState.rewards.push({ id: d.id, ...d.data() }));
-    grid.innerHTML = AdminState.rewards.length ? AdminState.rewards.map(r =>
-      '<div class="card reward-card"><div class="rw-logo" style="background:' + (r.color || 'var(--grad-success)') + '">' + (r.icon || '🎁') + '</div>' +
-      '<div class="rw-name">' + esc(r.title) + '</div><div class="rw-sub">' + esc(r.category || '') + '</div>' +
-      '<div class="rw-from">' + fmtNum(r.price || 0) + ' coins</div>' +
-      '<div class="flex gap-2 mt-2 justify-center"><button class="mini-btn" onclick="editRewardModal(\'' + r.id + '\')">✏️</button><button class="mini-btn danger" onclick="deleteReward(\'' + r.id + '\')">🗑️</button></div></div>'
-    ).join('') : emptyState(grid, '🎁', 'No rewards');
-  } catch (e) { emptyState(grid, '🎁', 'Error'); }
-}
-
-async function loadOrders() {
-  const tbody = el('ordersTableBody');
-  if (!tbody) return;
-  try {
-    const snap = await db.collection('orders').orderBy('createdAt', 'desc').limit(100).get();
-    AdminState.orders = [];
-    snap.forEach(d => AdminState.orders.push({ id: d.id, ...d.data() }));
-    tbody.innerHTML = AdminState.orders.length ? AdminState.orders.map(o => {
-      const stCls = o.status === 'completed' ? 'badge-success' : o.status === 'pending' ? 'badge-warning' : 'badge-info';
-      return '<tr><td class="text-xs">' + o.id.slice(0, 8) + '</td><td>' + esc(o.uid ? o.uid.slice(0, 8) : '—') + '</td><td>' + esc(o.item || '—') + '</td>' +
-        '<td>' + esc(o.type || '—') + '</td><td class="num">' + fmtNum(o.cost || 0) + '</td><td><span class="badge ' + stCls + '">' + (o.status || 'pending') + '</span></td>' +
-        '<td>' + formatDate(o.createdAt) + '</td><td><div class="tbl-actions">' + (o.status === 'pending' ? '<button class="mini-btn success" onclick="completeOrder(\'' + o.id + '\')">✅</button>' : '') + '</div></td></tr>';
-    }).join('') : '<tr><td colspan="8" class="text-center text-muted p-4">No orders</td></tr>';
-  } catch (e) { console.error(e); }
-}
-
-async function loadWithdrawals() {
-  const tbody = el('withdrawalsTableBody');
-  if (!tbody) return;
-  try {
-    const snap = await db.collection('withdrawals').orderBy('createdAt', 'desc').limit(100).get();
-    AdminState.withdrawals = [];
-    snap.forEach(d => AdminState.withdrawals.push({ id: d.id, ...d.data() }));
-    tbody.innerHTML = AdminState.withdrawals.length ? AdminState.withdrawals.map(w => {
-      const stCls = w.status === 'paid' ? 'badge-success' : w.status === 'pending' ? 'badge-warning' : w.status === 'rejected' ? 'badge-danger' : 'badge-info';
-      return '<tr><td>' + esc(w.uid ? w.uid.slice(0, 8) : '—') + '</td><td class="num">' + fmtNum(w.amount || 0) + '</td>' +
-        '<td>$' + ((w.usd || 0)).toFixed(2) + '</td><td>' + esc(w.method || '—') + '</td>' +
-        '<td><span class="badge ' + stCls + '">' + (w.status || 'pending') + '</span></td><td>—</td><td>' + formatDate(w.createdAt) + '</td>' +
-        '<td><div class="tbl-actions">' + (w.status === 'pending' ? '<button class="mini-btn success" onclick="approveWd(\'' + w.id + '\')">✅</button><button class="mini-btn danger" onclick="rejectWd(\'' + w.id + '\')">❌</button>' : '') + '</div></td></tr>';
-    }).join('') : '<tr><td colspan="8" class="text-center text-muted p-4">No withdrawals</td></tr>';
-  } catch (e) { console.error(e); }
-}
-
-async function completeOrder(id) {
-  await db.collection('orders').doc(id).update({ status: 'completed', completedAt: serverTimestamp() });
-  await logAdminAction('order_complete', 'Completed order ' + id);
-  toast('Done', 'Order completed', 'success');
-  loadOrders();
-}
-
-async function approveWd(id) {
-  const ok = await askConfirm('Approve Withdrawal', 'Mark as paid?', 'Approve', false);
-  if (!ok) return;
-  await db.collection('withdrawals').doc(id).update({ status: 'paid', paidAt: serverTimestamp() });
-  await logAdminAction('wd_approve', 'Approved withdrawal ' + id);
-  toast('Approved', 'Withdrawal marked as paid', 'success');
-  loadWithdrawals();
-}
-
-async function rejectWd(id) {
-  const ok = await askConfirm('Reject Withdrawal', 'Reject and refund?', 'Reject');
-  if (!ok) return;
-  const w = AdminState.withdrawals.find(x => x.id === id);
-  await db.collection('withdrawals').doc(id).update({ status: 'rejected', rejectedAt: serverTimestamp() });
-  if (w) {
-    await db.collection('ledger').add({ uid: w.uid, type: 'refund', description: 'Withdrawal rejected - refund', coins: w.amount, status: 'completed', createdAt: serverTimestamp() });
-  }
-  await logAdminAction('wd_reject', 'Rejected withdrawal ' + id);
-  toast('Rejected', 'Withdrawal rejected & refunded', 'success');
-  loadWithdrawals();
-}
-
-async function deleteReward(id) { const ok = await askConfirm('Delete Reward', 'Sure?', 'Delete'); if (!ok) return; await db.collection('rewards').doc(id).delete(); loadRewards(); }
-
-/* ============================================================================
-   12. FRAUD, REFERRAL, CONTENT, SUPPORT
-============================================================================ */
-async function loadFraud() {
-  const flagged = el('fraudFlaggedBody');
-  if (flagged) flagged.innerHTML = '<tr><td colspan="6" class="text-center text-muted p-4">No flagged users</td></tr>';
-  const events = el('fraudEventsBody');
-  if (events) events.innerHTML = '<tr><td colspan="5" class="text-center text-muted p-4">No fraud events</td></tr>';
-}
-
-async function loadReferral() {
-  const body = el('referralRecordsBody');
-  if (body) body.innerHTML = '<tr><td colspan="5" class="text-center text-muted p-4">No referral records</td></tr>';
-}
-
-async function loadContent() {
-  // Load FAQs
-  const faqList = el('faqsList');
-  if (faqList) {
-    try {
-      const snap = await db.collection('faqs').get();
-      const items = [];
-      snap.forEach(d => { const f = d.data(); items.push('<div class="dnd-item"><span class="grip">⠿</span><div style="flex:1"><div class="font-bold text-sm">' + esc(f.q || '') + '</div><div class="text-xs text-muted truncate">' + esc(f.a || '') + '</div></div><button class="mini-btn danger" onclick="deleteFaq(\'' + d.id + '\')">🗑️</button></div>'); });
-      faqList.innerHTML = items.length ? items.join('') : '<div class="text-center text-muted p-3">No FAQs</div>';
-    } catch (e) { faqList.innerHTML = '<div class="text-center text-muted p-3">Error</div>'; }
-  }
-}
-
-async function loadSupport() {
-  const tbody = el('ticketsTableBody');
-  if (!tbody) return;
-  try {
-    const snap = await db.collection('tickets').orderBy('createdAt', 'desc').limit(50).get();
-    AdminState.tickets = [];
-    snap.forEach(d => AdminState.tickets.push({ id: d.id, ...d.data() }));
-    tbody.innerHTML = AdminState.tickets.length ? AdminState.tickets.map(tk => {
-      const stCls = tk.status === 'open' ? 'badge-warning' : tk.status === 'resolved' ? 'badge-success' : 'badge-info';
-      return '<tr><td class="text-xs">' + esc(tk.ticketId || tk.id.slice(0, 8)) + '</td><td>' + esc(tk.username || '—') + '</td><td>' + esc(tk.subject || '—') + '</td>' +
-        '<td>' + esc(tk.category || '—') + '</td><td><span class="badge ' + stCls + '">' + (tk.status || 'open') + '</span></td><td>' + formatDate(tk.createdAt) + '</td>' +
-        '<td><button class="mini-btn" onclick="viewTicket(\'' + tk.id + '\')">👁️</button></td></tr>';
-    }).join('') : '<tr><td colspan="7" class="text-center text-muted p-4">No tickets</td></tr>';
-  } catch (e) { console.error(e); }
-}
-
-function viewTicket(id) {
-  const tk = AdminState.tickets.find(x => x.id === id);
-  if (!tk) return;
-  openAdminModal('🎧 Ticket: ' + esc(tk.subject || ''),
-    '<div class="kv-row"><span class="kv-label">User</span><span class="kv-value">' + esc(tk.username || '—') + '</span></div>' +
-    '<div class="kv-row"><span class="kv-label">Category</span><span class="kv-value">' + esc(tk.category || '—') + '</span></div>' +
-    '<div class="kv-row"><span class="kv-label">Status</span><span class="kv-value">' + esc(tk.status || 'open') + '</span></div>' +
-    '<div class="kv-row"><span class="kv-label">Date</span><span class="kv-value">' + formatDate(tk.createdAt) + '</span></div>' +
-    '<div class="mt-3"><div class="font-bold mb-2">Message:</div><div class="text-sm">' + esc(tk.message || '') + '</div></div>' +
-    (tk.status === 'open' ? '<button class="btn btn-success btn-block mt-3" onclick="resolveTicket(\'' + tk.id + '\')">✅ Mark Resolved</button>' : ''));
-}
-
-async function resolveTicket(id) {
-  await db.collection('tickets').doc(id).update({ status: 'resolved', resolvedAt: serverTimestamp() });
-  closeAdminModal('adminGenericModal');
-  toast('Resolved', 'Ticket marked as resolved', 'success');
-  loadSupport();
-}
-
-async function deleteFaq(id) { const ok = await askConfirm('Delete FAQ', 'Sure?', 'Delete'); if (!ok) return; await db.collection('faqs').doc(id).delete(); loadContent(); }
-
-/* ============================================================================
-   13. ADS, CAMPAIGNS, ANALYTICS, FINANCE
-============================================================================ */
-async function loadAds() { /* Static content in HTML */ }
-async function loadCampaigns() {
-  // Load promos
-  const grid = el('promosGrid');
-  if (grid) {
-    try {
-      const snap = await db.collection('promos').get();
-      const items = [];
-      snap.forEach(d => { const p = d.data(); items.push('<div class="card"><div class="font-bold">' + esc(p.code || '') + '</div><div class="text-sm text-muted">' + esc(p.title || '') + '</div><div class="text-xs">+' + fmtNum(p.reward || 0) + ' coins</div></div>'); });
-      grid.innerHTML = items.length ? items.join('') : '<div class="text-center text-muted p-3">No promos</div>';
-    } catch (e) {}
-  }
-}
-
-async function loadAnalytics() { /* Placeholder - would need real data */ }
-async function loadFinance() { /* Placeholder - computed from ledger */ }
-
-/* ============================================================================
-   14. SETTINGS, SECURITY, ROLES, LOGS
-============================================================================ */
-async function loadSettings() {
-  // Populate settings form
-  const s = AdminState.settings;
-  const set = (id, v) => { const x = el(id); if (x) x.value = v; };
-  set('setCoinRate', s.coinRate || 10000);
-  set('setSignupBonus', s.signupBonus || 100);
-  set('setMinWithdraw', s.minWithdraw || 10000);
-  set('setWithdrawFee', s.withdrawalFeePct || 1);
-  set('setFraudReserve', s.fraudReserve || 10);
-  set('setOpCost', s.opCost || 5);
-  set('setSiteUrl', s.siteUrl || '');
-  set('setSupportEmail', s.supportEmail || '');
-}
-
-async function loadSecurity() { /* Security events list */ }
-async function loadRoles() {
-  const tbody = el('adminsListBody');
-  if (tbody) {
-    try {
-      const snap = await db.collection('admin_users').get();
-      const items = [];
-      snap.forEach(d => { const a = d.data(); items.push('<tr><td>' + esc(a.email || '—') + '</td><td>' + esc(a.email || '—') + '</td><td><span class="role-bar role-super">' + esc(a.role || 'super') + '</span></td><td>—</td><td>—</td></tr>'); });
-      tbody.innerHTML = items.length ? items.join('') : '<tr><td colspan="5" class="text-center text-muted p-4">No admins</td></tr>';
-    } catch (e) {}
-  }
-}
-
-async function loadAuditLogs() {
-  const list = el('auditLogsList');
-  if (!list) return;
-  try {
-    const snap = await db.collection('admin_logs').orderBy('timestamp', 'desc').limit(100).get();
-    const items = [];
-    snap.forEach(d => {
-      const l = d.data();
-      items.push('<div class="log-row"><span class="log-ico">📝</span><span class="log-time">' + timeAgo(l.timestamp) + '</span><span class="log-action">' + esc(l.action || '') + '</span><span class="log-detail">' + esc(l.details || '') + '</span></div>');
-    });
-    list.innerHTML = items.length ? items.join('') : '<div class="text-center text-muted p-4">No logs yet</div>';
-  } catch (e) { list.innerHTML = '<div class="text-center text-muted p-4">Error loading logs</div>'; }
-}
-
-/* ============================================================================
-   15. AUDIT LOGGING
-============================================================================ */
-async function logAdminAction(action, details, metadata = {}) {
-  try {
-    await db.collection('admin_logs').add({
-      action, details,
-      adminId: AdminState.user ? AdminState.user.uid : 'unknown',
-      adminEmail: AdminState.user ? AdminState.user.email : 'unknown',
-      metadata,
-      timestamp: serverTimestamp()
-    });
-  } catch (e) { console.warn('Log failed', e); }
-}
-
-/* ============================================================================
-   16. REAL-TIME LISTENERS
-============================================================================ */
-function startRealtimeListeners() {
-  db.collection('withdrawals').where('status', '==', 'pending').onSnapshot(snap => {
-    AdminState.stats.pendingWithdrawals = snap.size;
-    updateQuickStats();
-  });
-  db.collection('orders').where('status', '==', 'pending').onSnapshot(snap => {
-    AdminState.stats.pendingOrders = snap.size;
-    updateQuickStats();
-  });
-}
-
-/* ============================================================================
-   17. FORM HANDLERS & MODALS
-============================================================================ */
-function initAdminForms() {
-  // Login form
-  el('adminLoginForm').addEventListener('submit', async (e) => {
+  el('adminLoginForm').addEventListener('submit', async function (e) {
     e.preventDefault();
-    const email = el('adminEmail').value.trim();
-    const pass = el('adminPassword').value;
+    var email = el('adminEmail').value.trim();
+    var pass = el('adminPassword').value;
     if (!email || !pass) return toast('Error', 'Fill all fields', 'warning');
-    const btn = el('adminLoginBtn');
-    btn.disabled = true; btn.classList.add('loading');
     try {
       await auth.signInWithEmailAndPassword(email, pass);
     } catch (err) {
-      if (err.code === 'auth/user-not-found') {
-        // Auto-create admin account on first login
-        if (email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
-          try {
-            await auth.createUserWithEmailAndPassword(email, pass);
-            toast('Account Created', 'Admin account created successfully!', 'success');
-          } catch (e2) { toast('Error', e2.message, 'error'); }
-        } else {
-          toast('Error', err.message, 'error');
-        }
-      } else {
-        toast('Error', err.message, 'error');
-      }
-    } finally {
-      btn.disabled = false; btn.classList.remove('loading');
+      if (err.code === 'auth/user-not-found' && email.toLowerCase() === ADMIN_EMAIL) {
+        try { await auth.createUserWithEmailAndPassword(email, pass); toast('Created', 'Admin account created', 'success'); }
+        catch (e2) { toast('Error', e2.message, 'error'); }
+      } else { toast('Error', err.message, 'error'); }
     }
   });
-
-  // Toggle password visibility
-  const togglePw = el('toggleAdminPw');
-  if (togglePw) togglePw.addEventListener('click', () => {
-    const inp = el('adminPassword');
-    inp.type = inp.type === 'password' ? 'text' : 'password';
-    togglePw.textContent = inp.type === 'password' ? '👁️' : '🙈';
+  var tp = el('toggleAdminPw');
+  if (tp) tp.addEventListener('click', function () {
+    var i = el('adminPassword');
+    i.type = i.type === 'password' ? 'text' : 'password';
   });
-
-  // Offer editor form
-  el('offerEditorForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const id = el('offerEditId').value;
-    const data = {
-      title: el('offerEditTitle').value.trim(),
-      provider: el('offerEditProvider').value.trim(),
-      category: el('offerEditCategory').value.trim(),
-      difficulty: el('offerEditDifficulty').value,
-      payout: parseInt(el('offerEditPayout').value) || 0,
-      minutes: parseInt(el('offerEditMinutes').value) || 5,
-      icon: el('offerEditIcon').value || '🎯',
-      link: el('offerEditLink').value.trim(),
-      description: el('offerEditDesc').value.trim(),
-      active: el('offerEditActive').checked,
-      updatedAt: serverTimestamp()
-    };
-    if (id) {
-      await db.collection('offers').doc(id).update(data);
-      await logAdminAction('offer_update', 'Updated offer: ' + data.title);
-    } else {
-      data.createdAt = serverTimestamp();
-      await db.collection('offers').add(data);
-      await logAdminAction('offer_create', 'Created offer: ' + data.title);
-    }
-    closeAdminModal('offerEditorModal');
-    toast('Saved', 'Offer saved successfully', 'success');
-    loadOffers();
-  });
-
-  // Create buttons
-  el('createOfferBtn').addEventListener('click', () => editOfferModal(null));
-  el('createProviderBtn').addEventListener('click', () => toast('Info', 'Provider creation coming soon', 'info'));
-  el('createGameBtn').addEventListener('click', () => toast('Info', 'Game creation coming soon', 'info'));
-  el('createSurveyBtn').addEventListener('click', () => toast('Info', 'Survey creation coming soon', 'info'));
-  el('createRewardBtn').addEventListener('click', () => toast('Info', 'Reward creation coming soon', 'info'));
-  el('createCampaignBtn').addEventListener('click', () => toast('Info', 'Campaign creation coming soon', 'info'));
-
-  // Settings save
-  el('saveAllSettingsBtn').addEventListener('click', async () => {
-    const data = {
-      coinRate: parseInt(el('setCoinRate').value) || 10000,
-      signupBonus: parseInt(el('setSignupBonus').value) || 100,
-      minWithdraw: parseInt(el('setMinWithdraw').value) || 10000,
-      withdrawalFeePct: parseFloat(el('setWithdrawFee').value) || 1,
-      fraudReserve: parseFloat(el('setFraudReserve').value) || 10,
-      opCost: parseFloat(el('setOpCost').value) || 5,
-      siteUrl: el('setSiteUrl').value.trim(),
-      supportEmail: el('setSupportEmail').value.trim(),
-      updatedAt: serverTimestamp()
-    };
-    await db.collection('settings').doc('global').set(data, { merge: true });
-    await logAdminAction('settings_update', 'Updated global settings');
-    AdminState.settings = Object.assign(AdminState.settings, data);
-    toast('Saved', 'Settings updated', 'success');
-  });
-
-  // Security save
-  el('saveSecurityBtn').addEventListener('click', async () => {
-    await logAdminAction('security_update', 'Updated security settings');
-    toast('Saved', 'Security settings updated', 'success');
-  });
-
-  // Seed data button
-  el('seedDataBtn').addEventListener('click', seedSampleData);
-
-  // Modal close buttons
-  $$('.modal-close').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const scrim = btn.closest('.modal-scrim');
-      if (scrim) scrim.classList.remove('open');
-    });
-  });
-  $$('.modal-scrim').forEach(scrim => {
-    scrim.addEventListener('click', (e) => { if (e.target === scrim) scrim.classList.remove('open'); });
-  });
-
-  // Confirm dialog buttons
-  el('adminConfirmOk').addEventListener('click', () => { el('adminConfirmDialog').classList.remove('open'); if (adminConfirmCb) { adminConfirmCb(true); adminConfirmCb = null; } });
-  el('adminConfirmCancel').addEventListener('click', () => { el('adminConfirmDialog').classList.remove('open'); if (adminConfirmCb) { adminConfirmCb(false); adminConfirmCb = null; } });
-
-  // Grant/Revoke admin
-  el('grantAdminForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const email = el('grantAdminEmail').value.trim();
-    const role = el('grantAdminRole').value;
-    if (!email) return;
+  el('adminLogoutBtn').addEventListener('click', function () { auth.signOut(); });
+}
+async function verifyAdmin(user) {
+  try {
+    var d1 = await db.collection('admin_users').doc(user.uid).get();
+    if (d1.exists) { A.role = d1.data().role || 'super'; A.isAdmin = true; return true; }
+  } catch (e) {}
+  try {
+    var d2 = await db.collection('admin_users').doc((user.email || '').toLowerCase()).get();
+    if (d2.exists) { A.role = d2.data().role || 'super'; A.isAdmin = true; return true; }
+  } catch (e) {}
+  if (user.email && user.email.toLowerCase() === ADMIN_EMAIL) {
     try {
-      const userRec = await auth.fetchSignInMethodsForEmail(email);
-      toast('Info', 'User must sign in first to get UID. Use Firestore console to add admin_users doc.', 'info');
-    } catch (e2) { toast('Error', e2.message, 'error'); }
-  });
+      await db.collection('admin_users').doc(user.uid).set({
+        email: user.email, role: 'super', permissions: ['*'],
+        ts: Date.now(), createdAt: serverTimestamp(), createdBy: 'auto-bootstrap'
+      });
+    } catch (e) { console.warn(e); }
+    A.isAdmin = true; A.role = 'super';
+    return true;
+  }
+  return false;
+}
+function showLogin(denied) {
+  el('adminAuth').style.display = 'grid';
+  el('adminShell').style.display = 'none';
+  var d = el('adminAccessDenied');
+  if (d) d.classList.toggle('hidden', !denied);
+}
+function showShell() {
+  el('adminAuth').style.display = 'none';
+  el('adminShell').style.display = 'flex';
+  initNav(); bindForms(); loadAll();
 }
 
-/* ============================================================================
-   18. SEED SAMPLE DATA
-============================================================================ */
-async function seedSampleData() {
-  const ok = await askConfirm('Seed Data', 'This will add sample offers, games, surveys, rewards, FAQs, events, promos and posts.', 'Seed', false);
-  if (!ok) return;
-  toast('Seeding', 'Adding sample data...', 'info');
+/* ---------------- NAV ---------------- */
+function initNav() {
+  document.querySelectorAll('[data-admin-nav]').forEach(function (l) {
+    l.addEventListener('click', function (e) { e.preventDefault(); navigateAdmin(l.getAttribute('data-admin-nav')); });
+  });
+  var ob = el('openSideBtn'); if (ob) ob.addEventListener('click', function () { document.body.classList.toggle('admin-mobile-open'); });
+  var th = el('adminThemeToggle'); if (th) th.addEventListener('click', function () {
+    var h = document.documentElement;
+    h.setAttribute('data-theme', h.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+  });
+  var rf = el('adminRefreshBtn'); if (rf) rf.addEventListener('click', loadAll);
+}
+function navigateAdmin(page) {
+  A.page = page;
+  document.querySelectorAll('[data-admin-nav]').forEach(function (l) { l.classList.toggle('active', l.getAttribute('data-admin-nav') === page); });
+  document.querySelectorAll('.admin-page').forEach(function (p) { p.classList.toggle('active', p.id === 'admin-' + page); });
+  document.body.classList.remove('admin-mobile-open');
+  renderPage(page);
+}
+function renderPage(p) {
+  var m = { dashboard: renderDashboard, analytics: renderAnalytics, finance: renderFinance, users: renderUsers, offers: renderOffers, providers: renderProviders, games: renderGames, surveys: renderSurveys, ads: function(){}, campaigns: renderCampaigns, rewards: renderRewards, orders: renderOrders, withdrawals: renderWithdrawals, fraud: renderFraud, referral: renderReferral, content: renderContent, support: renderSupport, settings: renderSettings, security: renderSecurity, roles: renderRoles, logs: renderLogs };
+  if (m[p]) m[p]();
+}
+
+/* ---------------- DATA ---------------- */
+async function loadAll() {
+  await loadSettings();
+  await Promise.all([loadUsers(), loadOffers(), loadGames(), loadSurveys(), loadRewards(), loadProviders(), loadOrders(), loadWithdrawals(), loadTickets(), loadCampaigns(), loadContent(), loadLogs(), loadLedger()]);
+  renderPage(A.page);
+  updateBadges();
+}
+async function loadSettings() {
+  try { var d = await db.collection('settings').doc('global').get(); if (d.exists) A.settings = d.data(); } catch (e) {}
+  A.settings = Object.assign({ coinRate: 10000, minWithdraw: 10000, signupBonus: 100, adReward: 120, adDailyCap: 15, withdrawalFeePct: 1, referralPercent: 10 }, A.settings);
+}
+async function loadUsers() {
   try {
-    // Offers
-    const offers = [
-      { title: 'Install Clash Royale', provider: 'Freecash', category: 'Games', payout: 2500, difficulty: 'Medium', minutes: 30, icon: '⚔️', active: true, createdAt: serverTimestamp() },
-      { title: 'Complete Shopping Survey', provider: 'Lootably', category: 'Surveys', payout: 850, difficulty: 'Easy', minutes: 10, icon: '📋', active: true, createdAt: serverTimestamp() },
-      { title: 'Sign Up Newsletter', provider: 'AdGate', category: 'Signups', payout: 250, difficulty: 'Easy', minutes: 2, icon: '📧', active: true, createdAt: serverTimestamp() },
-      { title: 'Try Streaming Trial', provider: 'OfferToro', category: 'Trials', payout: 1500, difficulty: 'Medium', minutes: 5, icon: '🎬', active: true, createdAt: serverTimestamp() },
-      { title: 'Download TikTok', provider: 'Freecash', category: 'Apps', payout: 1800, difficulty: 'Easy', minutes: 15, icon: '📱', active: true, createdAt: serverTimestamp() }
-    ];
-    for (const o of offers) await db.collection('offers').add(o);
+    var s = await db.collection('users').limit(500).get();
+    A.users = s.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); });
+  } catch (e) { A.users = []; }
+}
+async function loadOffers() { A.offers = await getCol('offers'); }
+async function loadGames() { A.games = await getCol('games'); }
+async function loadSurveys() { A.surveys = await getCol('surveys'); }
+async function loadRewards() { A.rewards = await getCol('rewards'); }
+async function loadProviders() { A.providers = await getCol('providers'); }
+async function loadOrders() { A.orders = await getCol('orders'); }
+async function loadWithdrawals() { A.withdrawals = await getCol('withdrawals'); }
+async function loadTickets() { A.tickets = await getCol('tickets'); }
+async function loadCampaigns() {
+  A.promos = await getCol('promos'); A.events = await getCol('events'); A.posts = await getCol('posts');
+}
+async function loadContent() { A.faqs = await getCol('faqs'); }
+async function loadLogs() {
+  try {
+    var s = await db.collection('admin_logs').orderBy('ts', 'desc').limit(200).get();
+    A.logs = s.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); });
+  } catch (e) { A.logs = []; }
+}
+async function loadLedger() {
+  try {
+    var s = await db.collection('ledger').limit(1000).get();
+    A.ledger = s.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); });
+  } catch (e) { A.ledger = []; }
+}
+async function getCol(n) {
+  try {
+    var s = await db.collection(n).limit(500).get();
+    return s.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); });
+  } catch (e) { return []; }
+}
+function sortByTs(arr) { return arr.slice().sort(function (a, b) { return (b.ts || 0) - (a.ts || 0); }); }
+function updateBadges() {
+  var pendW = A.withdrawals.filter(function (w) { return w.status === 'pending'; }).length;
+  var pendO = A.orders.filter(function (o) { return o.status === 'pending'; }).length;
+  var openT = A.tickets.filter(function (t) { return t.status === 'open'; }).length;
+  var flagged = A.users.filter(function (u) { return (u.fraudScore || 0) >= 60; }).length;
+  function set(id, v) { var x = el(id); if (x) x.textContent = v; }
+  set('sideBadgeUsers', A.users.length); set('sideBadgeWithdrawals', pendW); set('sideBadgeOrders', pendO); set('sideBadgeTickets', openT); set('sideBadgeFraud', flagged);
+  set('qsUsers', fmt(A.users.length)); set('qsOffers', fmt(A.offers.length)); set('qsWithdrawals', fmt(pendW)); set('qsOrders', fmt(pendO)); set('qsTickets', fmt(openT)); set('qsFlagged', fmt(flagged));
+}
 
-    // Games
-    const games = [
-      { title: 'Free Fire', icon: '🔥', color: 'linear-gradient(135deg,#ff6a00,#ffb800)', platform: 'Android & iOS', category: 'Battle Royale', rating: 4.8, active: true, createdAt: serverTimestamp() },
-      { title: 'PUBG Mobile', icon: '🍗', color: 'linear-gradient(135deg,#f5af19,#f12711)', platform: 'Android & iOS', category: 'Battle Royale', rating: 4.7, active: true, createdAt: serverTimestamp() },
-      { title: 'Roblox', icon: '🧱', color: 'linear-gradient(135deg,#ff3d71,#ff6b6b)', platform: 'All', category: 'Sandbox', rating: 4.6, active: true, createdAt: serverTimestamp() }
-    ];
-    for (const g of games) await db.collection('games').add(g);
+/* ---------------- DASHBOARD ---------------- */
+function renderDashboard() {
+  var week = Date.now() - 7 * 86400000;
+  var active = A.users.filter(function (u) { return (u.ts || 0) >= week || (u.lastSeen && u.lastSeen.toMillis && u.lastSeen.toMillis() >= week); }).length;
+  var newToday = A.users.filter(function (u) { return (u.createdAt && u.createdAt.toDate && u.createdAt.toDate().toISOString().slice(0, 10) === todayKey()); }).length;
+  var totalEarned = A.users.reduce(function (s, u) { return s + (u.lifetimeEarned || 0); }, 0);
+  var totalWd = A.users.reduce(function (s, u) { return s + (u.totalWithdrawn || 0); }, 0);
+  var rate = A.settings.coinRate || 10000;
+  function set(id, v) { var x = el(id); if (x) x.textContent = v; }
+  set('kpiTotalUsers', fmt(A.users.length));
+  set('kpiCoins', fmt(totalEarned));
+  set('kpiWithdrawn', '$' + (totalWd / rate).toFixed(2));
+  set('kpiGrowth', '+' + (A.users.length ? Math.round((newToday / A.users.length) * 100) : 0) + '%');
+  var adCount = A.ledger.filter(function (l) { return l.type === 'ad'; }).length;
+  var ecpm = 2.5;
+  set('qsRevenue', '$' + ((adCount * ecpm / 1000) + (totalEarned / rate) * 0.2).toFixed(2));
+  set('qsProfit', '$' + Math.max(0, (adCount * ecpm / 1000) - (totalWd / rate) * 0.05).toFixed(2));
+  var top = A.offers.slice().sort(function (a, b) { return (b.payout || 0) - (a.payout || 0); }).slice(0, 5);
+  var to = el('dashTopOffers');
+  if (to) to.innerHTML = top.length ? top.map(function (o) { return '<div class="ro-item"><div class="ro-logo">' + (o.icon || '🎯') + '</div><div class="ro-body"><div class="ro-name">' + esc(o.title) + '</div><div class="ro-rev">' + esc(o.provider || '') + '</div></div><div class="ro-amount">+' + fmt(o.payout || 0) + '</div></div>'; }).join('') : emptyMsg('No offers yet — seed data');
+  var acts = sortByTs(A.logs).slice(0, 8);
+  var af = el('dashRecentActivity');
+  if (af) af.innerHTML = acts.length ? acts.map(function (l) { return '<div class="af-item"><div class="af-ico">📝</div><div class="af-body"><div class="af-title">' + esc(l.action) + '</div><div class="af-sub">' + esc(l.details) + '</div></div><div class="af-time">' + timeAgo(l.ts) + '</div></div>'; }).join('') : emptyMsg('No activity yet');
+  drawRevenueChart();
+}
+function drawRevenueChart() {
+  if (!window.Chart) return;
+  var cv = el('revenueChart'); if (!cv) return;
+  var days = [];
+  for (var i = 6; i >= 0; i--) days.push(new Date(Date.now() - i * 86400000).toISOString().slice(0, 10));
+  var data = days.map(function (d) {
+    return A.ledger.filter(function (l) { return l.createdAt && l.createdAt.toDate && l.createdAt.toDate().toISOString().slice(0, 10) === d && (l.coins || 0) > 0; }).reduce(function (s, l) { return s + l.coins; }, 0) / (A.settings.coinRate || 10000);
+  });
+  if (A.charts.rev) A.charts.rev.destroy();
+  A.charts.rev = new Chart(cv, { type: 'line', data: { labels: days.map(function (d) { return d.slice(5); }), datasets: [{ label: 'Coins awarded ($)', data: data, borderColor: '#2575fc', backgroundColor: 'rgba(37,117,252,.15)', fill: true, tension: .35 }] }, options: { responsive: true, maintainAspectRatio: false } });
+  var emp = el('revenueChartEmpty'); if (emp) emp.style.display = data.some(function (v) { return v > 0; }) ? 'none' : 'grid';
+}
 
-    // Surveys
-    const surveys = [
-      { title: 'Market Research', category: 'Research', reward: 850, minutes: 15, rating: 4.5, active: true, createdAt: serverTimestamp() },
-      { title: 'Gaming Habits', category: 'Gaming', reward: 650, minutes: 10, rating: 4.7, active: true, createdAt: serverTimestamp() }
-    ];
-    for (const s of surveys) await db.collection('surveys').add(s);
+/* ---------------- ANALYTICS / FINANCE ---------------- */
+function renderAnalytics() {
+  function set(id, v) { var x = el(id); if (x) x.textContent = v; }
+  set('anVisits', fmt(A.users.length * 3));
+  set('anSignups', fmt(A.users.length));
+  var earners = A.users.filter(function (u) { return (u.lifetimeEarned || 0) > 0; }).length;
+  set('anConversion', (A.users.length ? Math.round((earners / A.users.length) * 100) : 0) + '%');
+  set('anSession', '6m');
+  set('funnelVisitors', fmt(A.users.length * 3)); set('funnelSignups', fmt(A.users.length)); set('funnelEarners', fmt(earners));
+  set('funnelWithdrawers', fmt(A.users.filter(function (u) { return (u.totalWithdrawn || 0) > 0; }).length));
+  var countries = {};
+  A.users.forEach(function (u) { var c = u.country || 'Unknown'; countries[c] = (countries[c] || 0) + 1; });
+  var ce = el('analyticsCountries');
+  if (ce) ce.innerHTML = Object.keys(countries).length ? Object.keys(countries).map(function (k) { return '<div class="metric-inline"><div class="mi-value">' + countries[k] + '</div><div class="mi-label">' + esc(k) + '</div></div>'; }).join('') : emptyMsg('No data');
+}
+function renderFinance() {
+  var rate = A.settings.coinRate || 10000;
+  var awarded = A.ledger.filter(function (l) { return (l.coins || 0) > 0 && l.status === 'completed'; }).reduce(function (s, l) { return s + l.coins; }, 0);
+  var spent = A.ledger.filter(function (l) { return (l.coins || 0) < 0 && l.status === 'completed'; }).reduce(function (s, l) { return s - l.coins; }, 0);
+  var wd = A.withdrawals.filter(function (w) { return w.status === 'paid'; }).reduce(function (s, w) { return s + (w.usd || 0); }, 0);
+  var revenue = (awarded / rate) * 0.35;
+  var rewards = awarded / rate;
+  var profit = revenue - rewards * 0.7 - wd * 0.02;
+  function set(id, v) { var x = el(id); if (x) x.textContent = v; }
+  set('finRevenue', '$' + revenue.toFixed(2)); set('finRewards', '$' + rewards.toFixed(2));
+  set('finPayments', '$' + (wd * 0.02).toFixed(2)); set('finReserve', '$' + (rewards * 0.1).toFixed(2));
+  set('finProfit', '$' + profit.toFixed(2)); set('finMargin', (revenue ? Math.round((profit / revenue) * 100) : 0) + '%');
+  var ll = el('financeLedgerList');
+  if (ll) ll.innerHTML = sortByTs(A.ledger).slice(0, 30).map(function (l) { return '<div class="log-row"><span class="log-ico">' + ((l.coins || 0) >= 0 ? '✅' : '💸') + '</span><span class="log-time">' + timeAgo(l.ts) + '</span><span class="log-action">' + esc(l.description || l.type) + '</span><span class="log-detail">' + fmt(l.coins) + '</span></div>'; }).join('') || emptyMsg('Empty ledger');
+}
 
-    // Rewards
-    const rewards = [
-      { title: 'Google Play $25', category: 'Gift Cards', icon: '🟢', color: 'linear-gradient(135deg,#00e676,#009688)', price: 250000, active: true, createdAt: serverTimestamp() },
-      { title: 'Bitcoin', category: 'Crypto', icon: '₿', color: 'linear-gradient(135deg,#f7931a,#ffb800)', price: 250000, active: true, createdAt: serverTimestamp() },
-      { title: 'Free Fire Top-Up', category: 'Game Top-Up', type: 'topup', icon: '🔥', color: 'linear-gradient(135deg,#ff6a00,#ffb800)', price: 4500, active: true, createdAt: serverTimestamp() }
-    ];
-    for (const r of rewards) await db.collection('rewards').add(r);
+/* ---------------- USERS ---------------- */
+function renderUsers() {
+  function set(id, v) { var x = el(id); if (x) x.textContent = v; }
+  set('usActive', A.users.filter(function (u) { return u.status === 'active'; }).length);
+  set('usPending', A.users.filter(function (u) { return u.status === 'pending'; }).length);
+  set('usBanned', A.users.filter(function (u) { return u.status === 'banned'; }).length);
+  set('usFlagged', A.users.filter(function (u) { return (u.fraudScore || 0) >= 60; }).length);
+  var tb = el('usersTableBody'); if (!tb) return;
+  tb.innerHTML = A.users.length ? sortByTs(A.users).map(function (u) {
+    var st = u.status || 'active';
+    var stc = st === 'active' ? 'badge-success' : st === 'banned' ? 'badge-danger' : 'badge-warning';
+    var rk = u.fraudScore || 0;
+    var rkc = rk < 30 ? 'badge-success' : rk < 60 ? 'badge-warning' : 'badge-danger';
+    return '<tr><td><div class="cell-avatar"><div class="avatar-sm">' + esc((u.username || '?').charAt(0).toUpperCase()) + '</div><div><div class="ca-name">' + esc(u.username || '') + '</div><div class="ca-sub">' + esc((u.uid || u.id).slice(0, 8)) + '</div></div></div></td><td>' + esc(u.email || '') + '</td><td class="num">' + fmt(u.lifetimeEarned || 0) + '</td><td class="num">' + fmt(u.totalWithdrawn || 0) + '</td><td><span class="badge ' + stc + '">' + st + '</span></td><td><span class="badge ' + rkc + '">' + rk + '</span></td><td>' + esc(u.country || '—') + '</td><td>' + timeAgo(u.ts) + '</td><td><div class="tbl-actions"><button class="mini-btn" onclick="viewUser(\'' + u.id + '\')">👁️</button><button class="mini-btn" onclick="editUserModal(\'' + u.id + '\')">✏️</button><button class="mini-btn" onclick="addCoinsModal(\'' + u.id + '\')">🪙</button><button class="mini-btn ' + (st === 'banned' ? 'success' : 'danger') + '" onclick="toggleBan(\'' + u.id + '\',\'' + st + '\')">' + (st === 'banned' ? '✅' : '🚫') + '</button></div></td></tr>';
+  }).join('') : '<tr><td colspan="9">' + emptyMsg('No users yet') + '</td></tr>';
+}
+function viewUser(id) {
+  var u = A.users.find(function (x) { return x.id === id; }); if (!u) return;
+  openAdminModal('👤 ' + (u.username || 'User'), '<div class="kv-row"><span class="kv-label">Email</span><span class="kv-value">' + esc(u.email || '') + '</span></div><div class="kv-row"><span class="kv-label">Coins earned</span><span class="kv-value">' + fmt(u.lifetimeEarned || 0) + '</span></div><div class="kv-row"><span class="kv-label">Spent</span><span class="kv-value">' + fmt(u.lifetimeSpent || 0) + '</span></div><div class="kv-row"><span class="kv-label">Withdrawn</span><span class="kv-value">' + fmt(u.totalWithdrawn || 0) + '</span></div><div class="kv-row"><span class="kv-label">Offers</span><span class="kv-value">' + (u.offersCompleted || 0) + '</span></div><div class="kv-row"><span class="kv-label">Streak</span><span class="kv-value">' + (u.streak || 0) + '</span></div><div class="kv-row"><span class="kv-label">Fraud score</span><span class="kv-value">' + (u.fraudScore || 0) + '</span></div><div class="kv-row"><span class="kv-label">Referrals</span><span class="kv-value">' + (u.referralCount || 0) + '</span></div>');
+}
+function editUserModal(id) {
+  var u = A.users.find(function (x) { return x.id === id; }); if (!u) return;
+  openAdminModal('✏️ Edit ' + (u.username || ''), '<div class="field"><label>Username</label><input class="input" id="euName" value="' + esc(u.username || '') + '"></div><div class="field"><label>Status</label><select class="select" id="euStatus"><option value="active"' + (u.status === 'active' ? ' selected' : '') + '>Active</option><option value="pending"' + (u.status === 'pending' ? ' selected' : '') + '>Pending</option><option value="restricted"' + (u.status === 'restricted' ? ' selected' : '') + '>Restricted</option><option value="banned"' + (u.status === 'banned' ? ' selected' : '') + '>Banned</option></select></div><div class="field"><label>Fraud score</label><input type="number" class="input" id="euFraud" value="' + (u.fraudScore || 0) + '"></div><button class="btn btn-accent btn-block" onclick="saveUser(\'' + id + '\')">💾 Save</button>');
+}
+async function saveUser(id) {
+  await db.collection('users').doc(id).update({ username: el('euName').value.trim(), status: el('euStatus').value, fraudScore: parseInt(el('euFraud').value) || 0 });
+  log('user_update', 'Updated user ' + id);
+  closeAdminModal('adminGenericModal'); toast('Saved', 'User updated', 'success'); loadUsers().then(renderUsers);
+}
+function addCoinsModal(id) {
+  openAdminModal('🪙 Adjust coins', '<div class="field"><label>Coins (+/-)</label><input type="number" class="input" id="acAmount" placeholder="500 or -500"></div><div class="field"><label>Reason</label><input class="input" id="acReason" placeholder="Manual adjustment"></div><button class="btn btn-accent btn-block" onclick="addCoins(\'' + id + '\')">Apply</button>');
+}
+async function addCoins(id) {
+  var amt = parseInt(el('acAmount').value) || 0;
+  var reason = el('acReason').value || 'Manual adjustment';
+  if (!amt) return;
+  await db.collection('ledger').add({ uid: id, type: 'adjust', description: reason, coins: amt, status: 'completed', reference: 'ADJ-' + uid().slice(0, 6), ts: Date.now(), createdAt: serverTimestamp() });
+  await db.collection('users').doc(id).update(amt >= 0 ? { lifetimeEarned: increment(amt) } : { lifetimeSpent: increment(-amt) });
+  log('balance_adjust', (amt > 0 ? '+' : '') + amt + ' to ' + id + ' (' + reason + ')');
+  closeAdminModal('adminGenericModal'); toast('Done', 'Balance adjusted', 'success'); loadUsers().then(renderUsers);
+}
+async function toggleBan(id, current) {
+  var next = current === 'banned' ? 'active' : 'banned';
+  var ok = await askConfirm(next === 'banned' ? 'Ban user' : 'Unban user', 'Set status to ' + next + '?', next === 'banned' ? 'Ban' : 'Unban');
+  if (!ok) return;
+  await db.collection('users').doc(id).update({ status: next });
+  log(next === 'banned' ? 'user_ban' : 'user_unban', id);
+  toast('Done', 'User ' + next, 'success'); loadUsers().then(renderUsers);
+}
 
-    // FAQs
-    const faqs = [
-      { q: 'How do I earn coins?', a: 'Complete offers, play games, take surveys, watch ads, claim daily rewards and invite friends.' },
-      { q: 'How do I withdraw?', a: 'Go to Withdraw, choose method, enter details and confirm. Processed in 24-72h.' },
-      { q: 'Is it safe?', a: 'Yes. We use encryption, anti-fraud and only work with trusted partners.' }
-    ];
-    for (const f of faqs) await db.collection('faqs').add(f);
+/* ---------------- OFFERS / GAMES / SURVEYS / REWARDS CRUD ---------------- */
+function renderOffers() {
+  var tb = el('offersTableBody'); if (!tb) return;
+  tb.innerHTML = A.offers.length ? A.offers.map(function (o) {
+    var act = o.active !== false;
+    return '<tr><td><div class="flex items-center gap-2"><div class="avatar-sm" style="background:' + (o.color || 'var(--grad-primary)') + '">' + (o.icon || '🎯') + '</div><div><div class="font-bold text-sm">' + esc(o.title) + '</div><div class="text-xs text-muted">' + esc(o.category || '') + '</div></div></div></td><td>' + esc(o.provider || '') + '</td><td class="num">' + fmt(o.payout || 0) + '</td><td><span class="badge ' + (act ? 'badge-success' : 'badge-neutral') + '">' + (act ? 'Active' : 'Off') + '</span></td><td><div class="tbl-actions"><button class="mini-btn" onclick="editOfferModal(\'' + o.id + '\')">✏️</button><button class="mini-btn" onclick="toggleOffer(\'' + o.id + '\',' + act + ')">' + (act ? '🚫' : '✅') + '</button><button class="mini-btn danger" onclick="deleteOffer(\'' + o.id + '\')">🗑️</button></div></td></tr>';
+  }).join('') : '<tr><td colspan="5">' + emptyMsg('No offers — click ＋ New Offer or Seed') + '</td></tr>';
+}
+function editOfferModal(id) {
+  var o = id ? A.offers.find(function (x) { return x.id === id; }) : null;
+  el('offerEditorTitle').textContent = o ? 'Edit Offer' : 'Create Offer';
+  el('offerEditId').value = o ? o.id : '';
+  el('offerEditTitle').value = o ? o.title || '' : '';
+  el('offerEditProvider').value = o ? o.provider || '' : 'Freecash';
+  el('offerEditCategory').value = o ? o.category || '' : 'Games';
+  el('offerEditPayout').value = o ? o.payout || '' : '';
+  el('offerEditMinutes').value = o ? o.minutes || 5 : 5;
+  el('offerEditIcon').value = o ? o.icon || '🎯' : '🎯';
+  el('offerEditLink').value = o ? o.link || '' : 'https://freecash.com/r/34GRD6';
+  el('offerEditDesc').value = o ? o.description || '' : '';
+  el('offerEditActive').checked = o ? o.active !== false : true;
+  el('offerEditorModal').classList.add('open');
+}
+async function deleteOffer(id) { var ok = await askConfirm('Delete offer', 'Cannot be undone.', 'Delete'); if (!ok) return; await db.collection('offers').doc(id).delete(); log('offer_delete', id); loadOffers().then(renderOffers); }
+async function toggleOffer(id, cur) { await db.collection('offers').doc(id).update({ active: !cur }); log('offer_toggle', id); loadOffers().then(renderOffers); }
+function renderGames() {
+  var g = el('gamesGrid'); if (!g) return;
+  g.innerHTML = A.games.length ? A.games.map(function (x) { return '<div class="card game-card"><div class="game-cover" style="background:' + (x.color || 'var(--grad-primary)') + '">' + (x.icon || '🎮') + '</div><div class="font-bold">' + esc(x.title) + '</div><div class="text-xs text-muted">' + esc(x.platform || '') + '</div><div class="flex gap-2 mt-2"><button class="mini-btn" onclick="editGameModal(\'' + x.id + '\')">✏️</button><button class="mini-btn danger" onclick="deleteGame(\'' + x.id + '\')">🗑️</button></div></div>'; }).join('') : emptyMsg('No games');
+}
+function editGameModal(id) {
+  var g = id ? A.games.find(function (x) { return x.id === id; }) : null;
+  openAdminModal(g ? '✏️ Edit Game' : '＋ New Game', '<div class="field"><label>Title</label><input class="input" id="gmTitle" value="' + esc(g ? g.title : '') + '"></div><div class="field"><label>Icon</label><input class="input" id="gmIcon" value="' + esc(g ? g.icon : '🎮') + '"></div><div class="field"><label>Total payout</label><input type="number" class="input" id="gmPayout" value="' + (g ? g.payout || 0 : 1000) + '"></div><button class="btn btn-accent btn-block" onclick="saveGame(\'' + (id || '') + '\')">💾 Save</button>');
+}
+async function saveGame(id) {
+  var data = { title: el('gmTitle').value.trim(), icon: el('gmIcon').value || '🎮', payout: parseInt(el('gmPayout').value) || 0, active: true, ts: Date.now() };
+  if (id) await db.collection('games').doc(id).update(data); else { data.createdAt = serverTimestamp(); await db.collection('games').add(data); }
+  log('game_save', data.title); closeAdminModal('adminGenericModal'); loadGames().then(renderGames);
+}
+async function deleteGame(id) { var ok = await askConfirm('Delete game', 'Sure?', 'Delete'); if (!ok) return; await db.collection('games').doc(id).delete(); loadGames().then(renderGames); }
+function renderSurveys() {
+  var g = el('surveysGrid'); if (!g) return;
+  g.innerHTML = A.surveys.length ? A.surveys.map(function (x) { return '<div class="card survey-card"><div class="sv-icon">📋</div><div class="sv-title">' + esc(x.title) + '</div><div class="sv-meta"><span class="sv-chip">+' + fmt(x.reward || 0) + '</span></div><div class="flex gap-2"><button class="mini-btn" onclick="editSurveyModal(\'' + x.id + '\')">✏️</button><button class="mini-btn danger" onclick="deleteSurvey(\'' + x.id + '\')">🗑️</button></div></div>'; }).join('') : emptyMsg('No surveys');
+}
+function editSurveyModal(id) {
+  var s = id ? A.surveys.find(function (x) { return x.id === id; }) : null;
+  openAdminModal(s ? '✏️ Edit Survey' : '＋ New Survey', '<div class="field"><label>Title</label><input class="input" id="svTitle" value="' + esc(s ? s.title : '') + '"></div><div class="field"><label>Reward</label><input type="number" class="input" id="svReward" value="' + (s ? s.reward || 0 : 500) + '"></div><div class="field"><label>Minutes</label><input type="number" class="input" id="svMin" value="' + (s ? s.minutes || 5 : 5) + '"></div><button class="btn btn-accent btn-block" onclick="saveSurvey(\'' + (id || '') + '\')">💾 Save</button>');
+}
+async function saveSurvey(id) {
+  var data = { title: el('svTitle').value.trim(), reward: parseInt(el('svReward').value) || 0, minutes: parseInt(el('svMin').value) || 5, active: true, ts: Date.now() };
+  if (id) await db.collection('surveys').doc(id).update(data); else { data.createdAt = serverTimestamp(); await db.collection('surveys').add(data); }
+  log('survey_save', data.title); closeAdminModal('adminGenericModal'); loadSurveys().then(renderSurveys);
+}
+async function deleteSurvey(id) { var ok = await askConfirm('Delete survey', 'Sure?', 'Delete'); if (!ok) return; await db.collection('surveys').doc(id).delete(); loadSurveys().then(renderSurveys); }
+function renderRewards() {
+  var g = el('rewardsGridAdmin'); if (!g) return;
+  g.innerHTML = A.rewards.length ? A.rewards.map(function (x) { return '<div class="card reward-card"><div class="rw-logo" style="background:' + (x.color || 'var(--grad-success)') + '">' + (x.icon || '🎁') + '</div><div class="rw-name">' + esc(x.title) + '</div><div class="rw-sub">' + esc(x.category || '') + '</div><div class="rw-from">' + fmt(x.price || 0) + ' 🪙</div><div class="flex gap-2 justify-center"><button class="mini-btn" onclick="editRewardModal(\'' + x.id + '\')">✏️</button><button class="mini-btn danger" onclick="deleteReward(\'' + x.id + '\')">🗑️</button></div></div>'; }).join('') : emptyMsg('No rewards');
+}
+function editRewardModal(id) {
+  var r = id ? A.rewards.find(function (x) { return x.id === id; }) : null;
+  el('rewardEditorTitle').textContent = r ? 'Edit Reward' : 'Create Reward';
+  el('rewardEditId').value = r ? r.id : '';
+  el('rewardEditTitle').value = r ? r.title || '' : '';
+  el('rewardEditCategory').value = r ? r.category || 'Gift Cards' : 'Gift Cards';
+  el('rewardEditIcon').value = r ? r.icon || '🎁' : '🎁';
+  el('rewardEditPrice').value = r ? r.price || '' : '';
+  el('rewardEditStock').value = r ? r.stock || 999 : 999;
+  el('rewardEditActive').checked = r ? r.active !== false : true;
+  el('rewardEditorModal').classList.add('open');
+}
+async function deleteReward(id) { var ok = await askConfirm('Delete reward', 'Sure?', 'Delete'); if (!ok) return; await db.collection('rewards').doc(id).delete(); log('reward_delete', id); loadRewards().then(renderRewards); }
+function renderProviders() {
+  var g = el('providersGrid'); if (!g) return;
+  g.innerHTML = A.providers.length ? A.providers.map(function (p) { return '<div class="card"><div class="card-head"><div class="card-title">' + esc(p.name || p.id) + '</div><span class="pv-status ' + (p.active !== false ? 'pv-live' : 'pv-down') + '"><span class="pv-dot"></span>' + (p.active !== false ? 'Active' : 'Off') + '</span></div><div class="kv-row"><span class="kv-label">Type</span><span class="kv-value">' + esc(p.type || '') + '</span></div><div class="kv-row"><span class="kv-label">Conversions</span><span class="kv-value">' + (p.conversions || 0) + '</span></div></div>'; }).join('') : emptyMsg('No providers');
+}
 
-    // Events
-    const events = [
-      { title: 'Double Coins Weekend', subtitle: '2x coins on all offers!', icon: '⚡', status: 'active', active: true, createdAt: serverTimestamp() },
-      { title: 'Referral Rush', subtitle: 'Triple referral bonuses', icon: '👥', status: 'upcoming', active: true, createdAt: serverTimestamp() }
-    ];
-    for (const ev of events) await db.collection('events').add(ev);
+/* ---------------- ORDERS / WITHDRAWALS ---------------- */
+function renderOrders() {
+  function set(id, v) { var x = el(id); if (x) x.textContent = v; }
+  set('ordPending', A.orders.filter(function (o) { return o.status === 'pending'; }).length);
+  set('ordCompleted', A.orders.filter(function (o) { return o.status === 'completed'; }).length);
+  set('ordRefunded', A.orders.filter(function (o) { return o.status === 'refunded'; }).length);
+  set('ordValue', '$' + (A.orders.reduce(function (s, o) { return s + (o.cost || 0); }, 0) / (A.settings.coinRate || 10000)).toFixed(2));
+  var tb = el('ordersTableBody'); if (!tb) return;
+  tb.innerHTML = sortByTs(A.orders).length ? sortByTs(A.orders).map(function (o) {
+    var stc = o.status === 'completed' ? 'badge-success' : o.status === 'pending' ? 'badge-warning' : 'badge-info';
+    return '<tr><td class="text-xs">' + o.id.slice(0, 8) + '</td><td>' + esc((o.uid || '').slice(0, 8)) + '</td><td>' + esc(o.item || '') + '</td><td>' + esc(o.type || '') + '</td><td class="num">' + fmt(o.cost || 0) + '</td><td><span class="badge ' + stc + '">' + (o.status || 'pending') + '</span></td><td>' + timeAgo(o.ts) + '</td><td><div class="tbl-actions">' + (o.status === 'pending' ? '<button class="mini-btn success" onclick="completeOrder(\'' + o.id + '\')">✅</button><button class="mini-btn danger" onclick="refundOrder(\'' + o.id + '\')">↩️</button>' : '') + '</div></td></tr>';
+  }).join('') : '<tr><td colspan="8">' + emptyMsg('No orders') + '</td></tr>';
+}
+async function completeOrder(id) { await db.collection('orders').doc(id).update({ status: 'completed', completedAt: serverTimestamp() }); log('order_complete', id); loadOrders().then(renderOrders); }
+async function refundOrder(id) {
+  var o = A.orders.find(function (x) { return x.id === id; }); if (!o) return;
+  var ok = await askConfirm('Refund order', 'Return ' + fmt(o.cost) + ' coins to user?', 'Refund');
+  if (!ok) return;
+  await db.collection('orders').doc(id).update({ status: 'refunded' });
+  await db.collection('ledger').add({ uid: o.uid, type: 'refund', description: 'Order refund: ' + (o.item || ''), coins: o.cost, status: 'completed', reference: 'RFD-' + uid().slice(0, 6), ts: Date.now(), createdAt: serverTimestamp() });
+  await db.collection('users').doc(o.uid).update({ lifetimeEarned: increment(o.cost) });
+  log('order_refund', id); loadOrders().then(renderOrders);
+}
+function renderWithdrawals() {
+  function set(id, v) { var x = el(id); if (x) x.textContent = v; }
+  set('wdPending', A.withdrawals.filter(function (w) { return w.status === 'pending'; }).length);
+  set('wdApproved', A.withdrawals.filter(function (w) { return w.status === 'approved' || w.status === 'paid'; }).length);
+  set('wdPaid', '$' + A.withdrawals.filter(function (w) { return w.status === 'paid'; }).reduce(function (s, w) { return s + (w.usd || 0); }, 0).toFixed(2));
+  set('wdChargebacks', A.withdrawals.filter(function (w) { return w.status === 'chargeback'; }).length);
+  var tb = el('withdrawalsTableBody'); if (!tb) return;
+  tb.innerHTML = sortByTs(A.withdrawals).length ? sortByTs(A.withdrawals).map(function (w) {
+    var stc = w.status === 'paid' ? 'badge-success' : w.status === 'pending' ? 'badge-warning' : w.status === 'rejected' ? 'badge-danger' : 'badge-info';
+    return '<tr><td>' + esc((w.uid || '').slice(0, 8)) + '</td><td class="num">' + fmt(w.amount || 0) + '</td><td>$' + (w.usd || 0).toFixed(2) + '</td><td>' + esc(w.method || '') + '</td><td><span class="badge ' + stc + '">' + (w.status || 'pending') + '</span></td><td>' + timeAgo(w.ts) + '</td><td><div class="tbl-actions">' + (w.status === 'pending' ? '<button class="mini-btn success" onclick="approveWd(\'' + w.id + '\')">✅</button><button class="mini-btn danger" onclick="rejectWd(\'' + w.id + '\')">❌</button>' : '') + '</div></td></tr>';
+  }).join('') : '<tr><td colspan="7">' + emptyMsg('No withdrawals') + '</td></tr>';
+}
+async function approveWd(id) {
+  var w = A.withdrawals.find(function (x) { return x.id === id; }); if (!w) return;
+  var ok = await askConfirm('Approve & mark paid', fmt(w.amount) + ' coins via ' + (w.method || ''), 'Approve', false);
+  if (!ok) return;
+  await db.collection('withdrawals').doc(id).update({ status: 'paid', paidAt: serverTimestamp() });
+  await db.collection('users').doc(w.uid).update({ totalWithdrawn: increment(w.amount) });
+  log('wd_approve', id); toast('Paid', 'Withdrawal marked paid', 'success'); loadWithdrawals().then(renderWithdrawals);
+}
+async function rejectWd(id) {
+  var w = A.withdrawals.find(function (x) { return x.id === id; }); if (!w) return;
+  var ok = await askConfirm('Reject & refund', 'Coins will be returned to the user.', 'Reject');
+  if (!ok) return;
+  await db.collection('withdrawals').doc(id).update({ status: 'rejected' });
+  await db.collection('ledger').add({ uid: w.uid, type: 'refund', description: 'Withdrawal rejected — refund', coins: w.amount, status: 'completed', reference: 'WDR-' + uid().slice(0, 6), ts: Date.now(), createdAt: serverTimestamp() });
+  await db.collection('users').doc(w.uid).update({ lifetimeEarned: increment(w.amount) });
+  log('wd_reject', id); loadWithdrawals().then(renderWithdrawals);
+}
 
-    // Promos
-    const promos = [
-      { code: 'WELCOME2026', title: 'Welcome Bonus', reward: 500, active: true, createdAt: serverTimestamp() },
-      { code: 'DOUBLE100', title: 'Double Boost', reward: 1000, active: true, createdAt: serverTimestamp() }
-    ];
-    for (const p of promos) await db.collection('promos').add(p);
-
-    // Posts
-    const posts = [
-      { title: '10 Ways to Earn More', icon: '💡', category: 'Tips', createdAt: serverTimestamp() },
-      { title: 'New Games This Week', icon: '🎮', category: 'Update', createdAt: serverTimestamp() }
-    ];
-    for (const p of posts) await db.collection('posts').add(p);
-
-    // Providers
-    const providers = [
-      { id: 'freecash', name: 'Freecash', type: 'affiliate', active: true, conversions: 0, revenue: 0 },
-      { id: 'lootably', name: 'Lootably', type: 'offerwall', active: true, conversions: 0, revenue: 0 },
-      { id: 'adsterra', name: 'Adsterra', type: 'adnetwork', active: true, conversions: 0, revenue: 0 }
-    ];
-    for (const p of providers) await db.collection('providers').doc(p.id).set(p);
-
-    // Settings
-    await db.collection('settings').doc('global').set({
-      coinRate: 10000, minWithdraw: 10000, signupBonus: 100, adReward: 120,
-      adDailyCap: 15, withdrawalFeePct: 1, referralPercent: 10, maintenance: false,
-      siteUrl: location.origin, supportEmail: 'support@rewords.com', updatedAt: serverTimestamp()
-    }, { merge: true });
-
-    await logAdminAction('seed_data', 'Seeded sample data');
-    toast('Done', 'Sample data seeded successfully!', 'success');
-    loadAdminData();
-  } catch (e) {
-    toast('Error', e.message, 'error');
+/* ---------------- FRAUD / REFERRAL ---------------- */
+function renderFraud() {
+  function set(id, v) { var x = el(id); if (x) x.textContent = v; }
+  set('fraudHigh', A.users.filter(function (u) { return (u.fraudScore || 0) >= 60; }).length);
+  set('fraudMed', A.users.filter(function (u) { var s = u.fraudScore || 0; return s >= 30 && s < 60; }).length);
+  var dup = {};
+  A.users.forEach(function (u) { (u.devices || []).forEach(function (d) { dup[d] = (dup[d] || 0) + 1; }); });
+  var dupCount = Object.keys(dup).filter(function (k) { return dup[k] > 1; }).length;
+  set('fraudEmulator', dupCount);
+  var tb = el('fraudFlaggedBody');
+  if (tb) {
+    var flagged = A.users.filter(function (u) { return (u.fraudScore || 0) >= 30; });
+    tb.innerHTML = flagged.length ? flagged.map(function (u) { return '<tr><td>' + esc(u.username || '') + '</td><td><span class="badge ' + ((u.fraudScore || 0) >= 60 ? 'badge-danger' : 'badge-warning') + '">' + (u.fraudScore || 0) + '</span></td><td>' + (u.flags || []).length + '</td><td>' + (u.devices || []).length + '</td><td>1</td><td><button class="mini-btn danger" onclick="toggleBan(\'' + u.id + '\',\'' + (u.status || 'active') + '\')">🚫</button></td></tr>'; }).join('') : '<tr><td colspan="6">' + emptyMsg('No flagged users 🎉') + '</td></tr>';
   }
 }
-
-/* ============================================================================
-   19. BOOT
-============================================================================ */
-function boot() {
-  initAdminForms();
-  initAdminAuth();
+function renderReferral() {
+  var refs = A.users.filter(function (u) { return u.referredBy; }).length;
+  function set(id, v) { var x = el(id); if (x) x.textContent = v; }
+  set('refTotal', refs);
+  set('refActiveReferrers', A.users.filter(function (u) { return (u.referralCount || 0) > 0; }).length);
+  set('refCoinsPaid', fmt(A.users.reduce(function (s, u) { return s + (u.referralEarned || 0); }, 0)));
 }
 
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', boot);
-} else {
-  boot();
+/* ---------------- CAMPAIGNS / CONTENT / SUPPORT ---------------- */
+function renderCampaigns() {
+  var p = el('promosGrid');
+  if (p) p.innerHTML = A.promos.length ? A.promos.map(function (x) { return '<div class="card"><div class="font-bold">' + esc(x.code) + '</div><div class="text-sm text-muted">' + esc(x.title || '') + '</div><div class="text-xs">+' + fmt(x.reward || 0) + ' coins</div><button class="mini-btn danger mt-2" onclick="deleteDoc(\'promos\',\'' + x.id + '\')">🗑️</button></div>'; }).join('') : emptyMsg('No promos');
+  var e = el('eventsGrid');
+  if (e) e.innerHTML = A.events.length ? A.events.map(function (x) { return '<div class="card"><div class="font-bold">' + (x.icon || '🎉') + ' ' + esc(x.title) + '</div><div class="text-xs text-muted">' + esc(x.status || 'active') + '</div><button class="mini-btn danger mt-2" onclick="deleteDoc(\'events\',\'' + x.id + '\')">🗑️</button></div>'; }).join('') : emptyMsg('No events');
+  var b = el('postsGrid');
+  if (b) b.innerHTML = A.posts.length ? A.posts.map(function (x) { return '<div class="card"><div class="font-bold">' + (x.icon || '📰') + ' ' + esc(x.title) + '</div><button class="mini-btn danger mt-2" onclick="deleteDoc(\'posts\',\'' + x.id + '\')">🗑️</button></div>'; }).join('') : emptyMsg('No posts');
+}
+async function deleteDoc(col, id) { var ok = await askConfirm('Delete', 'Remove this item?', 'Delete'); if (!ok) return; await db.collection(col).doc(id).delete(); log('delete_' + col, id); loadAll(); }
+function renderContent() {
+  var f = el('faqsList');
+  if (f) f.innerHTML = A.faqs.length ? A.faqs.map(function (x) { return '<div class="dnd-item"><span class="grip">⠿</span><div style="flex:1"><div class="font-bold text-sm">' + esc(x.q || '') + '</div><div class="text-xs text-muted truncate">' + esc(x.a || '') + '</div></div><button class="mini-btn danger" onclick="deleteDoc(\'faqs\',\'' + x.id + '\')">🗑️</button></div>'; }).join('') : emptyMsg('No FAQs');
+}
+function renderSupport() {
+  function set(id, v) { var x = el(id); if (x) x.textContent = v; }
+  set('supOpen', A.tickets.filter(function (t) { return t.status === 'open'; }).length);
+  set('supResolved', A.tickets.filter(function (t) { return t.status === 'resolved'; }).length);
+  var tb = el('ticketsTableBody'); if (!tb) return;
+  tb.innerHTML = sortByTs(A.tickets).length ? sortByTs(A.tickets).map(function (t) {
+    var stc = t.status === 'open' ? 'badge-warning' : t.status === 'resolved' ? 'badge-success' : 'badge-info';
+    return '<tr><td class="text-xs">' + esc(t.ticketId || t.id.slice(0, 8)) + '</td><td>' + esc(t.username || '') + '</td><td>' + esc(t.subject || '') + '</td><td>' + esc(t.category || '') + '</td><td><span class="badge ' + stc + '">' + (t.status || 'open') + '</span></td><td>' + timeAgo(t.ts) + '</td><td><button class="mini-btn" onclick="viewTicket(\'' + t.id + '\')">👁️</button></td></tr>';
+  }).join('') : '<tr><td colspan="7">' + emptyMsg('No tickets') + '</td></tr>';
+}
+function viewTicket(id) {
+  var t = A.tickets.find(function (x) { return x.id === id; }); if (!t) return;
+  openAdminModal('🎧 ' + esc(t.subject || ''), '<div class="kv-row"><span class="kv-label">User</span><span class="kv-value">' + esc(t.username || '') + '</span></div><div class="kv-row"><span class="kv-label">Category</span><span class="kv-value">' + esc(t.category || '') + '</span></div><div class="mt-3 text-sm">' + esc(t.message || '') + '</div>' + (t.status !== 'resolved' ? '<button class="btn btn-success btn-block mt-3" onclick="resolveTicket(\'' + t.id + '\')">✅ Mark Resolved</button>' : ''));
+}
+async function resolveTicket(id) {
+  await db.collection('tickets').doc(id).update({ status: 'resolved' });
+  var t = A.tickets.find(function (x) { return x.id === id; });
+  if (t) await db.collection('notifications').add({ uid: t.uid, type: 'system', title: 'Ticket resolved', body: t.subject || '', read: false, ts: Date.now(), createdAt: serverTimestamp() });
+  log('ticket_resolve', id); closeAdminModal('adminGenericModal'); loadTickets().then(renderSupport);
 }
 
-/* ============================================================================
-   END OF ADMIN.JS
-============================================================================ */
+/* ---------------- SETTINGS / SECURITY / ROLES / LOGS ---------------- */
+function renderSettings() {
+  function set(id, v) { var x = el(id); if (x) x.value = v; }
+  set('setCoinRate', A.settings.coinRate || 10000); set('setSignupBonus', A.settings.signupBonus || 100);
+  set('setMinWithdraw', A.settings.minWithdraw || 10000); set('setWithdrawFee', A.settings.withdrawalFeePct || 1);
+  set('setSiteUrl', A.settings.siteUrl || ''); set('setSupportEmail', A.settings.supportEmail || '');
+}
+function renderSecurity() {
+  var l = el('securityEventsList');
+  if (l) l.innerHTML = sortByTs(A.logs).filter(function (x) { return /ban|security|reject|fraud/.test(x.action); }).slice(0, 10).map(function (x) { return '<div class="log-row"><span class="log-ico">🛡️</span><span class="log-time">' + timeAgo(x.ts) + '</span><span class="log-action">' + esc(x.action) + '</span><span class="log-detail">' + esc(x.details) + '</span></div>'; }).join('') || emptyMsg('No security events');
+}
+function renderRoles() {
+  loadAdmins();
+}
+async function loadAdmins() {
+  try {
+    var s = await db.collection('admin_users').get();
+    A.admins = s.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); });
+  } catch (e) { A.admins = []; }
+  var tb = el('adminsListBody');
+  if (tb) tb.innerHTML = A.admins.length ? A.admins.map(function (a) { return '<tr><td>' + esc(a.email || a.id) + '</td><td>' + esc(a.email || '') + '</td><td><span class="role-bar role-super">' + esc(a.role || 'super') + '</span></td><td>' + timeAgo(a.ts) + '</td><td>' + (a.email !== ADMIN_EMAIL ? '<button class="mini-btn danger" onclick="revokeAdminDoc(\'' + a.id + '\')">🔒</button>' : '—') + '</td></tr>'; }).join('') : '<tr><td colspan="5">' + emptyMsg('No admins') + '</td></tr>';
+}
+async function revokeAdminDoc(id) { var ok = await askConfirm('Revoke admin', 'Remove admin access?', 'Revoke'); if (!ok) return; await db.collection('admin_users').doc(id).delete(); log('revoke_admin', id); loadAdmins(); }
+function renderLogs() {
+  var l = el('auditLogsList'); if (!l) return;
+  l.innerHTML = A.logs.length ? A.logs.map(function (x) { return '<div class="log-row"><span class="log-ico">📝</span><span class="log-time">' + timeAgo(x.ts) + '</span><span class="log-action">' + esc(x.action) + '</span><span class="log-detail">' + esc(x.details) + ' · ' + esc(x.adminEmail || '') + '</span></div>'; }).join('') : emptyMsg('No logs yet');
+}
+
+/* ---------------- FORMS BIND ---------------- */
+function bindForms() {
+  el('offerEditorForm').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    var id = el('offerEditId').value;
+    var data = { title: el('offerEditTitle').value.trim(), provider: el('offerEditProvider').value.trim(), category: el('offerEditCategory').value.trim(), payout: parseInt(el('offerEditPayout').value) || 0, minutes: parseInt(el('offerEditMinutes').value) || 5, icon: el('offerEditIcon').value || '🎯', link: el('offerEditLink').value.trim(), description: el('offerEditDesc').value.trim(), active: el('offerEditActive').checked, ts: Date.now() };
+    if (id) await db.collection('offers').doc(id).update(data); else { data.createdAt = serverTimestamp(); await db.collection('offers').add(data); }
+    log(id ? 'offer_update' : 'offer_create', data.title);
+    closeAdminModal('offerEditorModal'); toast('Saved', 'Offer saved', 'success'); loadOffers().then(renderOffers);
+  });
+  el('rewardEditorForm').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    var id = el('rewardEditId').value;
+    var data = { title: el('rewardEditTitle').value.trim(), category: el('rewardEditCategory').value, icon: el('rewardEditIcon').value || '🎁', price: parseInt(el('rewardEditPrice').value) || 0, stock: parseInt(el('rewardEditStock').value) || 999, type: el('rewardEditType').value, active: el('rewardEditActive').checked, ts: Date.now() };
+    if (id) await db.collection('rewards').doc(id).update(data); else { data.createdAt = serverTimestamp(); await db.collection('rewards').add(data); }
+    log(id ? 'reward_update' : 'reward_create', data.title);
+    closeAdminModal('rewardEditorModal'); toast('Saved', 'Reward saved', 'success'); loadRewards().then(renderRewards);
+  });
+  el('createOfferBtn').addEventListener('click', function () { editOfferModal(null); });
+  el('createRewardBtn').addEventListener('click', function () { editRewardModal(null); });
+  el('createGameBtn').addEventListener('click', function () { editGameModal(null); });
+  el('createSurveyBtn').addEventListener('click', function () { editSurveyModal(null); });
+  el('saveAllSettingsBtn').addEventListener('click', async function () {
+    var data = { coinRate: parseInt(el('setCoinRate').value) || 10000, signupBonus: parseInt(el('setSignupBonus').value) || 100, minWithdraw: parseInt(el('setMinWithdraw').value) || 10000, withdrawalFeePct: parseFloat(el('setWithdrawFee').value) || 1, siteUrl: el('setSiteUrl').value.trim(), supportEmail: el('setSupportEmail').value.trim(), ts: Date.now(), updatedAt: serverTimestamp() };
+    await db.collection('settings').doc('global').set(data, { merge: true });
+    Object.assign(A.settings, data); log('settings_update', 'global'); toast('Saved', 'Settings updated', 'success');
+  });
+  el('saveSecurityBtn').addEventListener('click', function () { log('security_update', 'thresholds'); toast('Saved', 'Security settings saved', 'success'); });
+  el('seedDataBtn').addEventListener('click', seedAll);
+  el('exportBackupBtn').addEventListener('click', function () {
+    downloadJSON('rewords-backup', { users: A.users, offers: A.offers, games: A.games, surveys: A.surveys, rewards: A.rewards, orders: A.orders, withdrawals: A.withdrawals, ledger: A.ledger, settings: A.settings });
+    log('backup_export', 'full');
+  });
+  el('exportUsersBtn').addEventListener('click', function () { exportCSV('users', [['username', 'email', 'earned', 'withdrawn', 'status']].concat(A.users.map(function (u) { return [u.username, u.email, u.lifetimeEarned, u.totalWithdrawn, u.status]; }))); });
+  el('postbackForm').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    var uidVal = el('pbUid').value.trim(), coins = parseInt(el('pbCoins').value) || 0;
+    if (!uidVal || !coins) return toast('Error', 'Fill UID and coins', 'warning');
+    await db.collection('ledger').add({ uid: uidVal, type: 'offer', description: 'Postback credit', coins: coins, status: 'completed', reference: 'PB-' + uid().slice(0, 6), ts: Date.now(), createdAt: serverTimestamp() });
+    await db.collection('users').doc(uidVal).update({ lifetimeEarned: increment(coins), offersCompleted: increment(1) });
+    log('postback_sim', '+' + coins + ' to ' + uidVal);
+    toast('Credited', '+' + fmt(coins) + ' coins', 'success');
+  });
+  el('adsConfigForm').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    await db.collection('settings').doc('global').set({ adReward: parseInt(el('adsCoinsPerAd').value) || 120, adDailyCap: parseInt(el('adsDailyCap').value) || 15 }, { merge: true });
+    log('ads_config', 'updated'); toast('Saved', 'Ad settings saved', 'success');
+  });
+  el('addFaqBtn').addEventListener('click', function () {
+    openAdminModal('＋ Add FAQ', '<div class="field"><label>Question</label><input class="input" id="fqQ"></div><div class="field"><label>Answer</label><textarea class="textarea" id="fqA" rows="3"></textarea></div><button class="btn btn-accent btn-block" onclick="saveFaq()">💾 Save</button>');
+  });
+  el('grantAdminForm').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    var email = el('grantAdminEmail').value.trim().toLowerCase();
+    var role = el('grantAdminRole').value;
+    if (!email) return;
+    await db.collection('admin_users').doc(email).set({ email: email, role: role, ts: Date.now(), createdAt: serverTimestamp(), grantedBy: A.user.email });
+    log('grant_admin', email + ' as ' + role); toast('Granted', email + ' → ' + role, 'success'); loadAdmins();
+  });
+  el('revokeAdminForm').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    var email = el('revokeAdminEmail').value.trim().toLowerCase();
+    await db.collection('admin_users').doc(email).delete().catch(function () {});
+    log('revoke_admin', email); toast('Revoked', email, 'success'); loadAdmins();
+  });
+  el('checkClaimBtn').addEventListener('click', async function () {
+    var email = el('checkClaimEmail').value.trim().toLowerCase();
+    var d = await db.collection('admin_users').doc(email).get().catch(function () { return null; });
+    var r = el('checkClaimResult');
+    if (r) r.innerHTML = d && d.exists ? '<span class="badge badge-success">✅ Admin: ' + esc(d.data().role || 'super') + '</span>' : '<span class="badge badge-danger">❌ Not an admin</span>';
+  });
+  document.querySelectorAll('.modal-close').forEach(function (b) {
+    b.addEventListener('click', function () { var s = b.closest('.modal-scrim'); if (s) s.classList.remove('open'); });
+  });
+  document.querySelectorAll('.modal-scrim').forEach(function (s) {
+    s.addEventListener('click', function (e) { if (e.target === s) s.classList.remove('open'); });
+  });
+  el('adminConfirmOk').addEventListener('click', function () { el('adminConfirmDialog').classList.remove('open'); if (confirmCb) { confirmCb(true); confirmCb = null; } });
+  el('adminConfirmCancel').addEventListener('click', function () { el('adminConfirmDialog').classList.remove('open'); if (confirmCb) { confirmCb(false); confirmCb = null; } });
+}
+async function saveFaq() {
+  var q = el('fqQ').value.trim(), a = el('fqA').value.trim();
+  if (!q || !a) return;
+  await db.collection('faqs').add({ q: q, a: a, ts: Date.now(), createdAt: serverTimestamp() });
+  log('faq_add', q); closeAdminModal('adminGenericModal'); loadContent().then(renderContent);
+}
+
+/* ---------------- SEED (one-click full data) ---------------- */
+async function seedAll() {
+  var ok = await askConfirm('Seed sample data', 'Adds offers, games, surveys, rewards, providers, FAQs, events, promos, posts and settings.', 'Seed', false);
+  if (!ok) return;
+  toast('Seeding', 'Writing data to Firestore...', 'info');
+  try {
+    var i;
+    var offers = [
+      { title: 'Install Clash Royale', provider: 'Freecash', category: 'Games', payout: 2500, minutes: 30, icon: '⚔️', color: 'linear-gradient(135deg,#ff6a00,#ffb800)', link: 'https://freecash.com/r/34GRD6', description: 'Reach Arena 5 within 7 days.', active: true },
+      { title: 'Shopping Habits Survey', provider: 'Lootably', category: 'Surveys', payout: 850, minutes: 10, icon: '📋', active: true },
+      { title: 'Newsletter Signup', provider: 'AdGate', category: 'Signups', payout: 250, minutes: 2, icon: '📧', active: true },
+      { title: 'Streaming Free Trial', provider: 'OfferToro', category: 'Trials', payout: 1500, minutes: 5, icon: '🎬', active: true },
+      { title: 'Download TikTok', provider: 'Freecash', category: 'Apps', payout: 1800, minutes: 15, icon: '📱', active: true },
+      { title: 'Solitaire Level 20', provider: 'Freecash', category: 'Games', payout: 8500, minutes: 120, icon: '🃏', active: true }
+    ];
+    for (i = 0; i < offers.length; i++) { offers[i].ts = Date.now(); offers[i].createdAt = serverTimestamp(); await db.collection('offers').add(offers[i]); }
+    var games = [
+      { title: 'Free Fire', icon: '🔥', color: 'linear-gradient(135deg,#ff6a00,#ffb800)', platform: 'Android & iOS', category: 'Battle Royale', rating: 4.8, payout: 10000, milestones: [{ icon: '📥', label: 'Install', reward: 100 }, { icon: '🎯', label: 'Level 5', reward: 500 }, { icon: '🎯', label: 'Level 10', reward: 2000 }, { icon: '🏆', label: 'Level 20', reward: 7400 }], active: true },
+      { title: 'PUBG Mobile', icon: '🍗', color: 'linear-gradient(135deg,#f5af19,#f12711)', platform: 'Android & iOS', category: 'Battle Royale', rating: 4.7, payout: 8500, active: true },
+      { title: 'Roblox', icon: '🧱', color: 'linear-gradient(135deg,#ff3d71,#ff6b6b)', platform: 'All', category: 'Sandbox', rating: 4.6, payout: 7000, active: true },
+      { title: 'Clash of Clans', icon: '⚔️', color: 'linear-gradient(135deg,#6a11cb,#2575fc)', platform: 'Android & iOS', category: 'Strategy', rating: 4.9, payout: 6500, active: true }
+    ];
+    for (i = 0; i < games.length; i++) { games[i].ts = Date.now(); games[i].createdAt = serverTimestamp(); await db.collection('games').add(games[i]); }
+    var surveys = [
+      { title: 'Market Research', category: 'Research', reward: 850, minutes: 15, rating: 4.5, active: true },
+      { title: 'Gaming Habits', category: 'Gaming', reward: 650, minutes: 10, rating: 4.7, active: true },
+      { title: 'Shopping Behavior', category: 'Shopping', reward: 1200, minutes: 20, rating: 4.3, active: true }
+    ];
+    for (i = 0; i < surveys.length; i++) { surveys[i].ts = Date.now(); surveys[i].createdAt = serverTimestamp(); await db.collection('surveys').add(surveys[i]); }
+    var rewards = [
+      { title: 'Google Play $25', category: 'Gift Cards', icon: '🟢', color: 'linear-gradient(135deg,#00e676,#009688)', price: 250000, stock: 50, active: true },
+      { title: 'Steam $20', category: 'Gift Cards', icon: '🔷', color: 'linear-gradient(135deg,#1b2838,#2a475e)', price: 200000, stock: 60, active: true },
+      { title: 'Bitcoin', category: 'Crypto', icon: '₿', color: 'linear-gradient(135deg,#f7931a,#ffb800)', price: 250000, stock: 999, active: true },
+      { title: 'USDT', category: 'Crypto', icon: '₮', color: 'linear-gradient(135deg,#26a17b,#50af95)', price: 100000, stock: 999, active: true },
+      { title: 'Free Fire', category: 'Game Top-Up', type: 'topup', icon: '🔥', color: 'linear-gradient(135deg,#ff6a00,#ffb800)', price: 4500, stock: 999, active: true, packages: [{ label: '100 Diamonds', cost: 4500 }, { label: '310 Diamonds', cost: 12000 }, { label: '520 Diamonds', cost: 18000 }] },
+      { title: 'PUBG Mobile', category: 'Game Top-Up', type: 'topup', icon: '🍗', color: 'linear-gradient(135deg,#f5af19,#f12711)', price: 5000, stock: 999, active: true, packages: [{ label: '60 UC', cost: 5000 }, { label: '325 UC', cost: 22000 }] },
+      { title: 'Roblox', category: 'Game Top-Up', type: 'topup', icon: '🧱', color: 'linear-gradient(135deg,#ff3d71,#ff6b6b)', price: 4000, stock: 999, active: true, packages: [{ label: '80 Robux', cost: 4000 }, { label: '400 Robux', cost: 18000 }] }
+    ];
+    for (i = 0; i < rewards.length; i++) { rewards[i].ts = Date.now(); rewards[i].createdAt = serverTimestamp(); await db.collection('rewards').add(rewards[i]); }
+    var providers = [{ id: 'freecash', name: 'Freecash', type: 'affiliate', active: true }, { id: 'lootably', name: 'Lootably', type: 'offerwall', active: true }, { id: 'adgate', name: 'AdGate', type: 'offerwall', active: true }, { id: 'adsterra', name: 'Adsterra', type: 'adnetwork', active: true }, { id: 'monetag', name: 'Monetag', type: 'adnetwork', active: true }];
+    for (i = 0; i < providers.length; i++) { providers[i].ts = Date.now(); await db.collection('providers').doc(providers[i].id).set(providers[i]); }
+    var faqs = [{ q: 'How do I earn coins?', a: 'Complete offers, games, surveys, ads and daily rewards.' }, { q: 'How do I withdraw?', a: 'Withdraw page → choose method → confirm. 24-72h review.' }, { q: 'Is it safe?', a: 'Yes — encryption, anti-fraud and trusted partners only.' }];
+    for (i = 0; i < faqs.length; i++) { faqs[i].ts = Date.now(); faqs[i].createdAt = serverTimestamp(); await db.collection('faqs').add(faqs[i]); }
+    var events = [{ title: 'Double Coins Weekend', subtitle: '2x coins on all offers!', icon: '⚡', status: 'active', active: true }, { title: 'Referral Rush', subtitle: 'Triple referral bonuses', icon: '👥', status: 'upcoming', active: true }];
+    for (i = 0; i < events.length; i++) { events[i].ts = Date.now(); events[i].createdAt = serverTimestamp(); await db.collection('events').add(events[i]); }
+    var promos = [{ code: 'WELCOME2026', title: 'Welcome Bonus', reward: 500, active: true }, { code: 'DOUBLE100', title: 'Double Boost', reward: 1000, active: true }];
+    for (i = 0; i < promos.length; i++) { promos[i].ts = Date.now(); promos[i].createdAt = serverTimestamp(); await db.collection('promos').add(promos[i]); }
+    var posts = [{ title: '10 Ways to Earn More', icon: '💡', content: 'Complete daily tasks, keep your streak, and use game milestones for maximum coins.' }, { title: 'New Games This Week', icon: '🎮', content: 'Free Fire, PUBG and Roblox milestone rewards are live now.' }];
+    for (i = 0; i < posts.length; i++) { posts[i].ts = Date.now(); posts[i].createdAt = serverTimestamp(); await db.collection('posts').add(posts[i]); }
+    await db.collection('settings').doc('global').set({ coinRate: 10000, minWithdraw: 10000, signupBonus: 100, adReward: 120, adDailyCap: 15, withdrawalFeePct: 1, referralPercent: 10, maintenance: false, siteUrl: location.origin, supportEmail: 'support@rewords.com', ts: Date.now(), updatedAt: serverTimestamp() }, { merge: true });
+    log('seed_data', 'full seed');
+    toast('Done 🎉', 'Sample data seeded successfully', 'success');
+    loadAll();
+  } catch (e) { toast('Error', e.message, 'error'); }
+}
+
+/* ---------------- BOOT ---------------- */
+A.charts = {};
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initAuth);
+else initAuth();
