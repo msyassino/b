@@ -6,34 +6,10 @@
     <meta name="description" content="Rewords - منصة المكافآت والألعاب الموثوقة">
     <title>Rewords | اكسب المكافآت والألعاب</title>
     
-    <!-- Adsterra Popunder (Right before closing </head>) -->
+    <!-- Adsterra Popunder -->
     <script src="https://pl30883338.effectivecpmnetwork.com/f2/a0/3c/f2a03c3e517e5b8b30ca73eac42e76ce.js"></script>
 
-    <!-- Firebase SDK (Modular v10) -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-        import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-        import { getFirestore, collection, doc, setDoc, getDoc, getDocs, updateDoc, increment, query, where, orderBy, limit, addDoc, serverTimestamp, runTransaction } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-        import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js";
-
-      <!-- Firebase SDK via Cloudflare CDN (works everywhere) -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.12.0/firebase-app-compat.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.12.0/firebase-auth-compat.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.12.0/firebase-firestore-compat.min.js"></script>
-<script>
-    firebase.initializeApp({
-        apiKey: "AIzaSyBPMbRdVEJ85Is7eg4UkAFs_UHq-BD_Fhg",
-        authDomain: "rewords-45ccf.firebaseapp.com",
-        projectId: "rewords-45ccf",
-        storageBucket: "rewords-45ccf.firebasestorage.app",
-        messagingSenderId: "324257034049",
-        appId: "1:324257034049:web:2e75279382793007683bc0",
-        measurementId: "G-5LNDESBVST"
-    });
-</script>
-
     <link rel="stylesheet" href="style.css">
-    <!-- Font Awesome for Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
@@ -63,10 +39,9 @@
         </div>
     </div>
 
-    <!-- Main App Container (Hidden until authenticated) -->
+    <!-- Main App Container -->
     <div id="app-container" style="display: none;">
         
-        <!-- Top Navigation -->
         <header class="top-nav">
             <div class="logo">
                 <i class="fas fa-coins"></i> Rewords
@@ -83,7 +58,6 @@
         </header>
 
         <div class="main-layout">
-            <!-- Sidebar Navigation -->
             <aside class="sidebar">
                 <nav>
                     <ul>
@@ -102,7 +76,6 @@
                 </nav>
             </aside>
 
-            <!-- Main Content Area -->
             <main class="content-area">
                 
                 <!-- VIEW: Home -->
@@ -130,31 +103,25 @@
                     </div>
 
                     <div class="ad-container">
-                        <!-- Adsterra Native Banner -->
                         <script async="async" data-cfasync="false" src="https://pl30883341.effectivecpmnetwork.com/f4263ddbfe2b4cb1e4ebdad01fc57d37/invoke.js"></script>
                         <div id="container-f4263ddbfe2b4cb1e4ebdad01fc57d37"></div>
                     </div>
 
                     <div class="section-block">
                         <h2><i class="fas fa-star"></i> العروض الأعلى ربحاً</h2>
-                        <div class="offers-scroll" id="home-top-offers">
-                            <!-- Populated by JS -->
-                        </div>
+                        <div class="offers-scroll" id="home-top-offers"></div>
                     </div>
 
                     <div class="section-block">
                         <h2><i class="fas fa-gift"></i> Popular Rewards</h2>
-                        <div class="rewards-grid" id="home-popular-rewards">
-                            <!-- Populated by JS -->
-                        </div>
+                        <div class="rewards-grid" id="home-popular-rewards"></div>
                     </div>
                 </section>
 
-                <!-- VIEW: Earn (Offerwalls) -->
+                <!-- VIEW: Earn -->
                 <section id="view-earn" class="view">
                     <h1>مركز المهام والعروض</h1>
                     <div class="ad-container">
-                        <!-- Adsterra 468x60 Banner -->
                         <script>
                             atOptions = {
                                 'key' : 'c26b6f67e990df9cd2681f276abe3231',
@@ -179,9 +146,9 @@
                                 <img src="https://cdn.phototourl.com/free/2026-08-17-d1178f26-4ff4-4f4d-aad0-8b528e531e10.png" alt="Freecash Affiliate">
                             </a>
                         </div>
-                        <p>أكمل العروض أدناه لكسب العملات. يتم التحقق من الإنجاز تلقائياً عبر Postback.</p>
+                        <p>أكمل العروض أدناه لكسب العملات.</p>
                         <div class="iframe-container">
-                            <iframe src="https://freecash.com/api/wall?user_id=PLACEHOLDER_USER_ID&sign=PLACEHOLDER_SIGN" id="offerwall-iframe" title="Offerwall"></iframe>
+                            <iframe src="about:blank" id="offerwall-iframe" title="Offerwall"></iframe>
                         </div>
                     </div>
                 </section>
@@ -190,9 +157,7 @@
                 <section id="view-games" class="view">
                     <h1>عروض الألعاب (Game Offers)</h1>
                     <p>اكسب مكافآت ضخمة عند الوصول لمستويات محددة في الألعاب.</p>
-                    <div class="games-grid" id="games-list">
-                        <!-- Populated by JS: Logo, Name, Platform, Milestones, Total Reward -->
-                    </div>
+                    <div class="games-grid" id="games-list"></div>
                 </section>
 
                 <!-- VIEW: Rewards Store -->
@@ -204,14 +169,12 @@
                         <button class="filter-btn" data-category="giftcard">بطاقات هدايا</button>
                         <button class="filter-btn" data-category="crypto">عملات رقمية</button>
                     </div>
-                    <div class="rewards-grid" id="rewards-store-list">
-                        <!-- Populated by JS -->
-                    </div>
+                    <div class="rewards-grid" id="rewards-store-list"></div>
                 </section>
 
-                <!-- VIEW: Wallet & Ledger -->
+                <!-- VIEW: Wallet -->
                 <section id="view-wallet" class="view">
-                    <h1>المحفظة وسجل المعاملات (Ledger)</h1>
+                    <h1>المحفظة وسجل المعاملات</h1>
                     <div class="wallet-summary">
                         <div class="w-box"><span>Available</span><strong id="w-available">0</strong></div>
                         <div class="w-box"><span>Pending</span><strong id="w-pending">0</strong></div>
@@ -219,7 +182,7 @@
                         <div class="w-box"><span>Total Earned</span><strong id="w-earned">0</strong></div>
                         <div class="w-box"><span>Total Spent</span><strong id="w-spent">0</strong></div>
                     </div>
-                    <h3>سجل المعاملات (غير قابل للتعديل)</h3>
+                    <h3>سجل المعاملات</h3>
                     <div class="table-responsive">
                         <table class="data-table" id="ledger-table">
                             <thead>
@@ -227,15 +190,13 @@
                                     <th>التاريخ</th>
                                     <th>النوع</th>
                                     <th>الوصف</th>
-                                    <th>المبلغ (Coins)</th>
-                                    <th>الرصيد قبل</th>
-                                    <th>الرصيد بعد</th>
+                                    <th>المبلغ</th>
+                                    <th>قبل</th>
+                                    <th>بعد</th>
                                     <th>الحالة</th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                <!-- Populated by JS -->
-                            </tbody>
+                            <tbody></tbody>
                         </table>
                     </div>
                 </section>
@@ -285,12 +246,10 @@
                     </div>
                 </section>
 
-                <!-- VIEW: Daily Rewards -->
+                <!-- VIEW: Daily -->
                 <section id="view-daily" class="view">
                     <h1>المكافأة اليومية و Streaks</h1>
-                    <div class="streak-calendar" id="streak-calendar">
-                        <!-- 7 Days boxes generated by JS -->
-                    </div>
+                    <div class="streak-calendar" id="streak-calendar"></div>
                     <button class="btn-primary btn-lg" id="daily-claim-main-btn">استلم مكافأة اليوم</button>
                 </section>
 
@@ -298,7 +257,7 @@
                 <section id="view-leaderboard" class="view">
                     <h1>لوحة المتصدرين</h1>
                     <table class="data-table" id="leaderboard-table">
-                        <thead><tr><th>الترتيب</th><th>المستخدم</th><th>الأرباح هذا الأسبوع</th></tr></thead>
+                        <thead><tr><th>الترتيب</th><th>المستخدم</th><th>الأرباح</th></tr></thead>
                         <tbody></tbody>
                     </table>
                 </section>
@@ -324,16 +283,15 @@
                     </form>
                 </section>
 
-                <!-- VIEW: Admin Dashboard -->
+                <!-- VIEW: Admin -->
                 <section id="view-admin" class="view">
-                    <h1>لوحة تحكم الإدارة (Super Admin)</h1>
+                    <h1>لوحة تحكم الإدارة</h1>
                     <div class="admin-tabs">
                         <button class="admin-tab active" data-admin-view="admin-overview">نظرة عامة</button>
                         <button class="admin-tab" data-admin-view="admin-users">المستخدمين</button>
-                        <button class="admin-tab" data-admin-view="admin-offers">العروض</button>
                         <button class="admin-tab" data-admin-view="admin-withdrawals">طلبات السحب</button>
                         <button class="admin-tab" data-admin-view="admin-fraud">مكافحة الاحتيال</button>
-                        <button class="admin-tab" data-admin-view="admin-finance">المالية والأرباح</button>
+                        <button class="admin-tab" data-admin-view="admin-finance">المالية</button>
                     </div>
 
                     <div id="admin-overview" class="admin-view active">
@@ -347,9 +305,9 @@
 
                     <div id="admin-users" class="admin-view">
                         <h3>إدارة المستخدمين</h3>
-                        <input type="text" id="admin-user-search" placeholder="بحث بالبريد أو ID...">
+                        <input type="text" id="admin-user-search" placeholder="بحث...">
                         <table class="data-table" id="admin-users-table">
-                            <thead><tr><th>ID</th><th>البريد</th><th>الرصيد</th><th>حالة الحساب</th><th>إجراءات</th></tr></thead>
+                            <thead><tr><th>ID</th><th>البريد</th><th>الرصيد</th><th>الحالة</th><th>إجراءات</th></tr></thead>
                             <tbody></tbody>
                         </table>
                     </div>
@@ -357,25 +315,23 @@
                     <div id="admin-withdrawals" class="admin-view">
                         <h3>طلبات السحب المعلقة</h3>
                         <table class="data-table" id="admin-withdrawals-table">
-                            <thead><tr><th>Order ID</th><th>المستخدم</th><th>المبلغ</th><th>الطريقة</th><th>Risk Score</th><th>إجراءات</th></tr></thead>
+                            <thead><tr><th>ID</th><th>المستخدم</th><th>المبلغ</th><th>الطريقة</th><th>Risk</th><th>إجراءات</th></tr></thead>
                             <tbody></tbody>
                         </table>
                     </div>
 
                     <div id="admin-fraud" class="admin-view">
                         <h3>مركز مكافحة الاحتيال</h3>
-                        <div class="fraud-logs" id="fraud-logs-list">
-                            <!-- Populated by JS -->
-                        </div>
+                        <div class="fraud-logs" id="fraud-logs-list"></div>
                     </div>
 
                     <div id="admin-finance" class="admin-view">
                         <h3>التقارير المالية</h3>
                         <div class="stats-grid">
                             <div class="stat-card"><h3>Gross Revenue</h3><p class="stat-value" id="fin-gross">$0</p></div>
-                            <div class="stat-card"><h3>User Rewards Cost</h3><p class="stat-value" id="fin-rewards">$0</p></div>
-                            <div class="stat-card"><h3>Chargebacks/Fraud</h3><p class="stat-value text-danger" id="fin-fraud">$0</p></div>
-                            <div class="stat-card"><h3>Net Profit Margin</h3><p class="stat-value" id="fin-margin">0%</p></div>
+                            <div class="stat-card"><h3>User Rewards</h3><p class="stat-value" id="fin-rewards">$0</p></div>
+                            <div class="stat-card"><h3>Chargebacks</h3><p class="stat-value text-danger" id="fin-fraud">$0</p></div>
+                            <div class="stat-card"><h3>Net Margin</h3><p class="stat-value" id="fin-margin">0%</p></div>
                         </div>
                     </div>
                 </section>
@@ -384,16 +340,38 @@
         </div>
     </div>
 
-    <!-- Toast Notification Container -->
+    <!-- Toast Container -->
     <div id="toast-container"></div>
 
-    <!-- Adsterra Social Bar (Right above closing </body>) -->
+    <!-- Adsterra Social Bar -->
     <script src="https://pl30883339.effectivecpmnetwork.com/4e/ac/77/4eac77d9d06816802aaaabe459e4ee83.js"></script>
     
-    <!-- Monetag Multitag (Right above closing </body>) -->
+    <!-- Monetag -->
     <script src="https://quge5.com/88/tag.min.js" data-zone="270698" async data-cfasync="false"></script>
 
-   <!-- Main Application Logic -->
-<script src="script.js"></script>
+    <!-- ========== FIREBASE SDK (Compat - Traditional) ========== -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-functions-compat.js"></script>
+
+    <!-- ========== FIREBASE INIT ========== -->
+    <script>
+        var firebaseConfig = {
+            apiKey: "AIzaSyBPMbRdVEJ85Is7eg4UkAFs_UHq-BD_Fhg",
+            authDomain: "rewords-45ccf.firebaseapp.com",
+            projectId: "rewords-45ccf",
+            storageBucket: "rewords-45ccf.firebasestorage.app",
+            messagingSenderId: "324257034049",
+            appId: "1:324257034049:web:2e75279382793007683bc0",
+            measurementId: "G-5LNDESBVST"
+        };
+        firebase.initializeApp(firebaseConfig);
+        console.log("✅ Firebase initialized successfully");
+    </script>
+
+    <!-- ========== MAIN APP SCRIPT (AFTER Firebase) ========== -->
+    <script src="script.js"></script>
+
 </body>
 </html>
