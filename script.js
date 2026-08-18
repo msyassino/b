@@ -1,12 +1,24 @@
 // ==========================================
+// 0. Firebase Check
+// ==========================================
+if (typeof firebase === 'undefined') {
+    console.error('Firebase SDK not loaded!');
+    alert('خطأ: لم يتم تحميل Firebase. يرجى تحديث الصفحة.');
+}
+
+// ==========================================
 // 1. Configuration & Constants
 // ==========================================
 const CONFIG = {
-    COIN_TO_USD_RATE: 10000, // 10,000 Coins = $1.00
+    COIN_TO_USD_RATE: 10000,
     MIN_WITHDRAWAL_COINS: 10000,
-    ADMIN_UIDS: ['bxDznYJPD1el1wotLvzTUYynM873'], // استبدل هذا بـ UID الخاص بك كمدير
+    ADMIN_UIDS: ['admin_uid_here'],
     SITE_URL: window.location.origin
 };
+
+// Create shortcuts for Firebase services
+const auth = firebase.auth();
+const db = firebase.firestore();
 
 // ==========================================
 // 2. Utility Functions
@@ -17,6 +29,8 @@ const generateId = () => Math.random().toString(36).substring(2, 15) + Math.rand
 
 function showToast(message, type = 'info') {
     const container = document.getElementById('toast-container');
+    if (!container) return;
+    
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
     
@@ -30,7 +44,6 @@ function showToast(message, type = 'info') {
     
     setTimeout(() => { toast.remove(); }, 3000);
 }
-
 // ==========================================
 // 3. Authentication Module
 // ==========================================
