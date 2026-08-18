@@ -4,12 +4,18 @@
 const CONFIG = {
     COIN_TO_USD_RATE: 10000, // 10,000 Coins = $1.00
     MIN_WITHDRAWAL_COINS: 10000,
-    ADMIN_UIDS: ['admin_uid_here'], // استبدل هذا بـ UID الخاص بك كمدير
+    ADMIN_UIDS: ['bxDznYJPD1el1wotLvzTUYynM873'], // استبدل هذا بـ UID الخاص بك كمدير
     SITE_URL: window.location.origin
 };
 
-// Firebase is now available globally via compat SDK
-// No need to destructure - use firebase.auth() and firebase.firestore() directly
+// Destructure Firebase modules for cleaner code
+const { 
+    onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut,
+    collection, doc, setDoc, getDoc, getDocs, updateDoc, increment, query, where, orderBy, limit, addDoc, serverTimestamp, runTransaction
+} = window.firebaseModules;
+
+const db = window.firebaseDb;
+const auth = window.firebaseAuth;
 
 // ==========================================
 // 2. Utility Functions
@@ -66,21 +72,21 @@ authForm.addEventListener('submit', async (e) => {
 
     try {
         if (isLoginMode) {
-            await auth.signInWithEmailAndPassword(email, password);
+            await signInWithEmailAndPassword(auth, email, password);
             showToast('تم تسجيل الدخول بنجاح', 'success');
         } else {
             const username = document.getElementById('auth-username').value;
             const referralCode = document.getElementById('auth-referral').value;
             
-            const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             const uid = userCredential.user.uid;
             
-            const newUserRef = db.collection('users').doc(uid);
+            const newUserRef = doc(db, 'users', uid);
             
             let referredBy = null;
             if (referralCode) {
-                const refQuery = db.collection('users').where('referralCode', '==', referralCode);
-                const refSnapshot = await refQuery.get();
+                const refQuery = query(collection(db, 'users'), where('referralCode', '==', referralCode));
+                const refSnapshot = await getDocs(refQuery);
                 if (!refSnapshot.empty) {
                     referredBy = refSnapshot.docs[0].id;
                 }
@@ -91,7 +97,7 @@ authForm.addEventListener('submit', async (e) => {
                 email,
                 username: username || email.split('@')[0],
                 role: 'user',
-                status: 'verified',
+                status: 'verified', // verified, pending, restricted
                 coins: {
                     available: 0,
                     pending: 0,
@@ -102,17 +108,17 @@ authForm.addEventListener('submit', async (e) => {
                 streak: { current: 0, lastClaim: null },
                 referralCode: generateId().substring(0, 8).toUpperCase(),
                 referredBy,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                lastLogin: firebase.firestore.FieldValue.serverTimestamp()
+                createdAt: serverTimestamp(),
+                lastLogin: serverTimestamp()
             };
 
-            // Initial Ledger Entry using Transaction
-            const newLedgerRef = db.collection('ledger').doc();
-            await db.runTransaction(async (transaction) => {
+            // Initial Ledger Entry
+            const newLedgerRef = doc(collection(db, 'ledger'));
+            await runTransaction(db, async (transaction) => {
                 transaction.set(newUserRef, userDoc);
                 transaction.set(newLedgerRef, {
                     uid, type: 'system', description: 'إنشاء حساب', amount: 0,
-                    balanceBefore: 0, balanceAfter: 0, timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                    balanceBefore: 0, balanceAfter: 0, timestamp: serverTimestamp()
                 });
             });
 
@@ -129,18 +135,18 @@ authForm.addEventListener('submit', async (e) => {
 });
 
 document.getElementById('nav-logout-btn').addEventListener('click', () => {
-    auth.signOut().then(() => {
+    signOut(auth).then(() => {
         showToast('تم تسجيل الخروج', 'info');
         window.location.reload();
     });
 });
 
 // Auth State Observer
-auth.onAuthStateChanged(async (user) => {
+onAuthStateChanged(auth, async (user) => {
     if (user) {
         currentUser = user;
-        const userDoc = await db.collection('users').doc(user.uid).get();
-        if (userDoc.exists) {
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        if (userDoc.exists()) {
             userData = userDoc.data();
             isAdmin = userData.role === 'admin' || CONFIG.ADMIN_UIDS.includes(user.uid);
             
@@ -163,9 +169,7 @@ auth.onAuthStateChanged(async (user) => {
             updateWalletUI();
             loadReferralData();
             
-            await db.collection('users').doc(user.uid).update({ 
-                lastLogin: firebase.firestore.FieldValue.serverTimestamp() 
-            });
+            await updateDoc(doc(db, 'users', user.uid), { lastLogin: serverTimestamp() });
         }
     } else {
         currentUser = null;
@@ -219,13 +223,13 @@ function updateWalletUI() {
 // 5. Wallet & Ledger System (Core - Transactional)
 // ==========================================
 async function addLedgerEntry(uid, type, description, amount) {
-    const userRef = db.collection('users').doc(uid);
-    const ledgerRef = db.collection('ledger').doc();
+    const userRef = doc(db, 'users', uid);
+    const ledgerRef = doc(collection(db, 'ledger'));
 
     try {
-        await db.runTransaction(async (transaction) => {
+        await runTransaction(db, async (transaction) => {
             const userDoc = await transaction.get(userRef);
-            if (!userDoc.exists) throw new Error("User does not exist!");
+            if (!userDoc.exists()) throw new Error("User does not exist!");
             
             const currentCoins = userDoc.data().coins;
             const balanceBefore = currentCoins.available;
@@ -247,11 +251,11 @@ async function addLedgerEntry(uid, type, description, amount) {
             transaction.set(ledgerRef, {
                 uid, type, description, amount,
                 balanceBefore, balanceAfter: newAvailable,
-                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                timestamp: serverTimestamp()
             });
         });
         
-        const updatedDoc = await userRef.get();
+        const updatedDoc = await getDoc(userRef);
         userData = updatedDoc.data();
         updateWalletUI();
         return true;
@@ -266,11 +270,8 @@ async function loadLedger() {
     const tbody = document.querySelector('#ledger-table tbody');
     tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;">جاري التحميل...</td></tr>';
     
-    const q = db.collection('ledger')
-        .where('uid', '==', currentUser.uid)
-        .orderBy('timestamp', 'desc')
-        .limit(50);
-    const snapshot = await q.get();
+    const q = query(collection(db, 'ledger'), where('uid', '==', currentUser.uid), orderBy('timestamp', 'desc'), limit(50));
+    const snapshot = await getDocs(q);
     
     tbody.innerHTML = '';
     if (snapshot.empty) {
@@ -341,9 +342,9 @@ async function claimDailyReward() {
     const success = await addLedgerEntry(currentUser.uid, 'daily', `مكافأة يومية - يوم ${newStreak}`, rewardAmount);
     
     if (success) {
-        await db.collection('users').doc(currentUser.uid).update({
+        await updateDoc(doc(db, 'users', currentUser.uid), {
             'streak.current': newStreak,
-            'streak.lastClaim': firebase.firestore.FieldValue.serverTimestamp()
+            'streak.lastClaim': serverTimestamp()
         });
         showToast(`تم إضافة ${rewardAmount} Coins إلى رصيدك!`, 'success');
         loadDailyStreak();
@@ -366,10 +367,8 @@ document.getElementById('withdraw-form').addEventListener('submit', async (e) =>
         return showToast('رصيدك غير كافٍ لهذا السحب', 'error');
     }
 
-    const recentWithdrawalsQuery = db.collection('withdrawals')
-        .where('uid', '==', currentUser.uid)
-        .where('status', '==', 'pending');
-    const recentSnap = await recentWithdrawalsQuery.get();
+    const recentWithdrawalsQuery = query(collection(db, 'withdrawals'), where('uid', '==', currentUser.uid), where('status', '==', 'pending'));
+    const recentSnap = await getDocs(recentWithdrawalsQuery);
     if (!recentSnap.empty) {
         return showToast('لديك طلب سحب قيد المراجعة بالفعل', 'warning');
     }
@@ -379,7 +378,7 @@ document.getElementById('withdraw-form').addEventListener('submit', async (e) =>
     const success = await addLedgerEntry(currentUser.uid, 'withdrawal_hold', `طلب سحب معلق: ${method}`, -amount);
     
     if (success) {
-        await db.collection('withdrawals').add({
+        await addDoc(collection(db, 'withdrawals'), {
             uid: currentUser.uid,
             username: userData.username,
             method, address,
@@ -387,7 +386,7 @@ document.getElementById('withdraw-form').addEventListener('submit', async (e) =>
             amountUSD: amount / CONFIG.COIN_TO_USD_RATE,
             status: 'pending',
             riskScore: calculateRiskScore(userData),
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            createdAt: serverTimestamp()
         });
         showToast('تم إرسال طلب السحب وهو قيد المراجعة', 'success');
         document.getElementById('withdraw-form').reset();
@@ -450,11 +449,11 @@ window.requestReward = async (rewardId, cost) => {
 
     const success = await addLedgerEntry(currentUser.uid, 'reward_redemption', `استبدال: ${reward.name}`, -cost);
     if (success) {
-        await db.collection('orders').add({
+        await addDoc(collection(db, 'orders'), {
             uid: currentUser.uid, username: userData.username,
             rewardId, rewardName: reward.name, costCoins: cost,
             costUSD: cost / CONFIG.COIN_TO_USD_RATE,
-            status: 'pending', createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            status: 'pending', createdAt: serverTimestamp()
         });
         showToast('تم إرسال طلب المكافأة بنجاح', 'success');
         updateWalletUI();
@@ -467,11 +466,11 @@ window.requestReward = async (rewardId, cost) => {
 async function loadAdminDashboard() {
     if (!isAdmin) return;
     
-    const usersSnap = await db.collection('users').get();
+    const usersSnap = await getDocs(collection(db, 'users'));
     document.getElementById('adm-total-users').textContent = usersSnap.size;
     
-    const wQuery = db.collection('withdrawals').where('status', '==', 'pending');
-    const wSnap = await wQuery.get();
+    const wQuery = query(collection(db, 'withdrawals'), where('status', '==', 'pending'));
+    const wSnap = await getDocs(wQuery);
     const wTable = document.querySelector('#admin-withdrawals-table tbody');
     wTable.innerHTML = '';
     
@@ -509,28 +508,22 @@ document.querySelectorAll('.admin-tab').forEach(tab => {
 window.processWithdrawal = async (withdrawalId, action) => {
     if (!confirm(`هل أنت متأكد من ${action === 'approved' ? 'موافقة' : 'رفض'} هذا الطلب؟`)) return;
     
-    const wRef = db.collection('withdrawals').doc(withdrawalId);
-    const wDoc = await wRef.get();
-    if (!wDoc.exists) return;
+    const wRef = doc(db, 'withdrawals', withdrawalId);
+    const wDoc = await getDoc(wRef);
+    if (!wDoc.exists()) return;
     const wData = wDoc.data();
     
-    await db.runTransaction(async (transaction) => {
+    await runTransaction(db, async (transaction) => {
         if (action === 'approved') {
-            transaction.update(wRef, { 
-                status: 'approved', 
-                processedAt: firebase.firestore.FieldValue.serverTimestamp() 
-            });
-            await db.collection('admin_logs').add({
+            transaction.update(wRef, { status: 'approved', processedAt: serverTimestamp() });
+            await addDoc(collection(db, 'admin_logs'), {
                 action: 'withdrawal_approved', targetId: withdrawalId,
-                adminUid: currentUser.uid, timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                adminUid: currentUser.uid, timestamp: serverTimestamp()
             });
             showToast('تمت الموافقة على السحب', 'success');
         } else {
-            transaction.update(wRef, { 
-                status: 'rejected', 
-                processedAt: firebase.firestore.FieldValue.serverTimestamp() 
-            });
-            const userRef = db.collection('users').doc(wData.uid);
+            transaction.update(wRef, { status: 'rejected', processedAt: serverTimestamp() });
+            const userRef = doc(db, 'users', wData.uid);
             const userDoc = await transaction.get(userRef);
             const currentCoins = userDoc.data().coins;
             
@@ -538,13 +531,13 @@ window.processWithdrawal = async (withdrawalId, action) => {
                 'coins.available': currentCoins.available + wData.amountCoins
             });
             
-            await db.collection('ledger').add({
+            await addDoc(collection(db, 'ledger'), {
                 uid: wData.uid, type: 'withdrawal_refund',
                 description: `استرداد بسبب رفض السحب: ${wData.method}`,
                 amount: wData.amountCoins,
                 balanceBefore: currentCoins.available,
                 balanceAfter: currentCoins.available + wData.amountCoins,
-                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                timestamp: serverTimestamp()
             });
             showToast('تم رفض السحب وإعادة الرصيد للمستخدم', 'warning');
         }
@@ -565,6 +558,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (currentUser) {
             const iframe = document.getElementById('offerwall-iframe');
             if (iframe) {
+                // ملاحظة: في البيئة الإنتاجية، يجب توليد التوقيع (Signature) من خلال Firebase Cloud Function
+                // لمنع تزوير المعرفات. هذا الرابط هو هيكل توضيحي.
                 iframe.src = `https://freecash.com/api/wall?user_id=${currentUser.uid}`; 
             }
             clearInterval(checkAuthForIframe);
@@ -574,11 +569,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
 document.getElementById('support-form').addEventListener('submit', async (e) => {
     e.preventDefault();
-    await db.collection('support_tickets').add({
+    await addDoc(collection(db, 'support_tickets'), {
         uid: currentUser.uid, username: userData.username,
         category: document.getElementById('support-category').value,
         message: document.getElementById('support-message').value,
-        status: 'open', createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        status: 'open', createdAt: serverTimestamp()
     });
     showToast('تم إرسال التذكرة بنجاح', 'success');
     document.getElementById('support-form').reset();
