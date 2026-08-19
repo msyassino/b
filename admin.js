@@ -61,7 +61,7 @@
 
   function renderNav() {
     document.querySelectorAll('[data-tab]').forEach(b => b.classList.toggle('active', b.dataset.tab === activeTab));
-    document.querySelectorAll('.admin-tab').forEach(s => s.classList.toggle('hidden', s.id !== `tab-${activeTab}`));
+    document.querySelectorAll('.tab').forEach(s => s.classList.toggle('active', s.id === `tab-${activeTab}`));
   }
 
   function setTab(tab) {
@@ -74,6 +74,7 @@
 
   // Backward-compatible global hook for any existing HTML handlers.
   window.loadTab = (tab) => setTab(tab);
+  window.setTab = setTab;
 
   function clearListeners(){ unsub.forEach(fn => { try{fn();}catch{} }); unsub=[]; }
 

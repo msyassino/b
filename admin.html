@@ -56,6 +56,14 @@
   </main>
 </div>
 <script src="https://www.gstatic.com/firebasejs/12.17.0/firebase-app-compat.js"></script><script src="https://www.gstatic.com/firebasejs/12.17.0/firebase-auth-compat.js"></script><script src="https://www.gstatic.com/firebasejs/12.17.0/firebase-firestore-compat.js"></script>
+<script>
+// Global compatibility hook: keep old inline handlers working even before admin.js executes.
+window.loadTab = window.loadTab || function(tab){
+  window.location.hash = String(tab || "overview");
+  document.querySelectorAll(".tab").forEach(section => section.classList.toggle("active", section.id === `tab-${tab}`));
+  document.querySelectorAll(".nav button[data-tab]").forEach(button => button.classList.toggle("active", button.dataset.tab === tab));
+};
+</script>
 <script src="admin.js"></script>
 <script>document.addEventListener('click',e=>{const b=e.target.closest('[data-tab]');if(b&&b.closest('#tab-overview')){const t=b.dataset.tab;document.querySelector(`button[data-tab="${t}"]`)?.click();document.getElementById('side').classList.remove('open');}})</script>
 </body></html>
