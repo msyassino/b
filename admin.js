@@ -66,8 +66,14 @@
 
   function setTab(tab) {
     if (!TABS.includes(tab)) return;
-    activeTab = tab; history.replaceState(null, '', `#${tab}`); renderNav(); loadTab(tab);
+    activeTab = tab;
+    history.replaceState(null, '', `#${tab}`);
+    renderNav();
+    renderIfNeeded();
   }
+
+  // Backward-compatible global hook for any existing HTML handlers.
+  window.loadTab = (tab) => setTab(tab);
 
   function clearListeners(){ unsub.forEach(fn => { try{fn();}catch{} }); unsub=[]; }
 
